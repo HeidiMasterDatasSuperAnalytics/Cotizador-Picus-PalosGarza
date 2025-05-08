@@ -6,18 +6,17 @@ RUTA_RUTAS = "rutas_guardadas.csv"
 RUTA_DATOS = "datos_generales.csv"
 
 def safe_number(x):
-    return 0 if (x is None or (isinstance(x, float) and pd.isna(x))) else x
+    return 0 if pd.isna(x) or x is None else x
 
 def cargar_datos_generales():
     if os.path.exists(RUTA_DATOS):
         return pd.read_csv(RUTA_DATOS).set_index("Parametro").to_dict()["Valor"]
     else:
-        return {"Costos Indirectos Fijos": 7281.31}
+        return {}
 
 valores = cargar_datos_generales()
-costo_indirecto_fijo = float(valores.get("Costos Indirectos Fijos", 7281.31))
 
-st.title("🔁 Simulador de Vuelta Redonda")
+st.title("\U0001F501 Simulador de Vuelta Redonda")
 
 if os.path.exists(RUTA_RUTAS):
     df = pd.read_csv(RUTA_RUTAS)
@@ -26,7 +25,7 @@ if os.path.exists(RUTA_RUTAS):
     expo_rutas = df[df["Tipo"] == "EXPO"].copy()
     vacio_rutas = df[df["Tipo"] == "VACIO"].copy()
 
-    st.subheader("📌 Paso 1: Selecciona tipo de ruta principal")
+    st.subheader("\ud83d\udccc Paso 1: Selecciona tipo de ruta principal")
     tipo_principal = st.selectbox("Tipo principal", ["IMPO", "EXPO"])
 
     ruta_principal = None
@@ -59,21 +58,21 @@ if os.path.exists(RUTA_RUTAS):
     destino_ref = ruta_principal["Destino"]
     vacios = vacio_rutas[vacio_rutas["Origen"] == destino_ref].copy()
     st.markdown("---")
-    st.subheader("📌 Paso 2: Ruta VACÍA sugerida (opcional)")
+    st.subheader("\ud83d\udccc Paso 2: Ruta VACÍA sugerida (opcional)")
     if not vacios.empty:
         vacio_idx = st.selectbox("Ruta VACÍA (Origen = " + destino_ref + ")", vacios.index,
                                  format_func=lambda x: f"{vacios.loc[x, 'Origen']} → {vacios.loc[x, 'Destino']}")
         ruta_vacio = vacios.loc[vacio_idx]
         rutas_seleccionadas.append(ruta_vacio)
 
-    # Paso 3: sugerencia secundaria (IMPO o EXPO)
+    # Paso 3: sugerencia secundaria
     st.markdown("---")
     if tipo_principal == "IMPO":
-        st.subheader("📌 Paso 3: Ruta EXPO sugerida (opcional)")
+        st.subheader("\ud83d\udccc Paso 3: Ruta EXPO sugerida (opcional)")
         origen_expo = ruta_vacio["Destino"] if ruta_vacio is not None else destino_ref
         candidatos = expo_rutas[expo_rutas["Origen"] == origen_expo].copy()
     else:
-        st.subheader("📌 Paso 3: Ruta IMPO sugerida (opcional)")
+        st.subheader("\ud83d\udccc Paso 3: Ruta IMPO sugerida (opcional)")
         origen_impo = ruta_vacio["Destino"] if ruta_vacio is not None else destino_ref
         candidatos = impo_rutas[impo_rutas["Origen"] == origen_impo].copy()
 
@@ -86,36 +85,44 @@ if os.path.exists(RUTA_RUTAS):
         ruta_secundaria = candidatos.loc[idx]
         rutas_seleccionadas.append(ruta_secundaria)
 
-    # 🔁 Simulación y visualización
-    if st.button("🚛 Simular Vuelta Redonda"):
+    # Simular
+    if st.button("\U0001F69B Simular Vuelta Redonda"):
         ingreso_total = sum(safe_number(r.get("Ingreso Total", 0)) for r in rutas_seleccionadas)
         costo_total_general = sum(safe_number(r.get("Costo_Total_Ruta", 0)) for r in rutas_seleccionadas)
 
         utilidad_bruta = ingreso_total - costo_total_general
-        utilidad_neta = utilidad_bruta - costo_indirecto_fijo
+
+        # Obtener el promedio de clasificación de ruta para aplicar el costo indirecto adecuado
+        clasificaciones = [r.get("Clasificación Ruta", "RL") for r in rutas_seleccionadas]
+        costo_indirecto_total = 0
+        for clasif in clasificaciones:
+            if clasif == "RC":
+                costo_indirecto_total += float(valores.get("Costo Indirecto RC", 7350.44))
+            else:
+                costo_indirecto_total += float(valores.get("Costo Indirecto RL", 7281.31))
+
+        utilidad_neta = utilidad_bruta - costo_indirecto_total
 
         pct_bruta = (utilidad_bruta / ingreso_total * 100) if ingreso_total > 0 else 0
         pct_neta = (utilidad_neta / ingreso_total * 100) if ingreso_total > 0 else 0
 
         st.markdown("---")
-        st.markdown("## 📄 Detalle de Rutas")
+        st.markdown("## \ud83d\udcc4 Detalle de Rutas")
         for r in rutas_seleccionadas:
-            st.markdown(f"**{r['Tipo']} — {r.get('Cliente', 'nan')}**")
+            st.markdown(f"**{r['Tipo']} — {r.get('Cliente', 'N/A')}**")
             st.markdown(f"- {r['Origen']} → {r['Destino']}")
+            st.markdown(f"- Clasificación: {r.get('Clasificación Ruta', 'RL')}")
             st.markdown(f"- Modo de viaje: {r.get('Modo_Viaje', 'Operador')}")
-            st.markdown(f"- Ingreso Original: ${safe_number(r.get('Ingreso_Original')):,.2f}")
-            st.markdown(f"- Moneda: {r.get('Moneda', 'N/A')}")
-            st.markdown(f"- Tipo de cambio: {safe_number(r.get('Tipo de cambio')):,.2f}")
             st.markdown(f"- Ingreso Total: ${safe_number(r.get('Ingreso Total')):,.2f}")
             st.markdown(f"- Costo Total Ruta: ${safe_number(r.get('Costo_Total_Ruta')):,.2f}")
             st.markdown("---")
 
-        st.subheader("📊 Resultado General")
+        st.subheader("\ud83d\udcca Resultado General")
         st.markdown(f"**Ingreso Total:** ${ingreso_total:,.2f}")
         st.markdown(f"**Costo Total:** ${costo_total_general:,.2f}")
         st.markdown(f"**Utilidad Bruta:** ${utilidad_bruta:,.2f}")
         st.markdown(f"**% Utilidad Bruta:** {pct_bruta:.2f}%")
-        st.markdown(f"**Costos Indirectos Fijos:** ${costo_indirecto_fijo:,.2f}")
+        st.markdown(f"**Costos Indirectos Totales:** ${costo_indirecto_total:,.2f}")
         st.markdown(f"**Utilidad Neta:** ${utilidad_neta:,.2f}")
         st.markdown(f"**% Utilidad Neta:** {pct_neta:.2f}%")
 else:
