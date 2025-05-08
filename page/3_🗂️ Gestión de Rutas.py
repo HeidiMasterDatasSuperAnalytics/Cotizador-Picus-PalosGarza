@@ -15,28 +15,28 @@ def cargar_datos_generales():
 def safe_number(x):
     return 0 if (x is None or (isinstance(x, float) and pd.isna(x))) else x
 
-st.title("🗂️ Gestión de Rutas Guardadas")
+st.title("\U0001F5C2\ufe0f Gestión de Rutas Guardadas")
 
 if os.path.exists(RUTA_RUTAS):
     df = pd.read_csv(RUTA_RUTAS)
     valores = cargar_datos_generales()
 
-    st.subheader("📋 Rutas Registradas")
+    st.subheader("\ud83d\udccb Rutas Registradas")
     st.dataframe(df, use_container_width=True)
     st.markdown(f"**Total de rutas registradas:** {len(df)}")
     st.markdown("---")
 
-    st.subheader("🗑️ Eliminar rutas")
+    st.subheader("\ud83d\uddd1\ufe0f Eliminar rutas")
     indices = st.multiselect("Selecciona los índices a eliminar", df.index.tolist())
     if st.button("Eliminar rutas seleccionadas") and indices:
         df.drop(index=indices, inplace=True)
         df.reset_index(drop=True, inplace=True)
         df.to_csv(RUTA_RUTAS, index=False)
-        st.success("✅ Rutas eliminadas correctamente.")
+        st.success("\u2705 Rutas eliminadas correctamente.")
         st.experimental_rerun()
 
     st.markdown("---")
-    st.subheader("✏️ Editar Ruta Existente")
+    st.subheader("\u270f\ufe0f Editar Ruta Existente")
     indice_editar = st.selectbox("Selecciona el índice a editar", df.index.tolist())
     if indice_editar is not None:
         ruta = df.loc[indice_editar]
@@ -46,6 +46,7 @@ if os.path.exists(RUTA_RUTAS):
             with col1:
                 fecha = st.date_input("Fecha", pd.to_datetime(ruta.get("Fecha", pd.Timestamp.now())))
                 tipo = st.selectbox("Tipo", ["IMPO", "EXPO", "VACIO"], index=["IMPO", "EXPO", "VACIO"].index(ruta.get("Tipo", "IMPO")))
+                clasificacion = st.selectbox("Clasificación Ruta", ["RL", "RC"], index=["RL", "RC"].index(ruta.get("Clasificación Ruta", "RL")))
                 modo_viaje = st.selectbox("Modo de viaje", ["Operador", "Team"], index=["Operador", "Team"].index(ruta.get("Modo_Viaje", "Operador")))
                 cliente = st.text_input("Cliente", value=ruta.get("Cliente", ""))
                 origen = st.text_input("Origen", value=ruta.get("Origen", ""))
@@ -64,7 +65,7 @@ if os.path.exists(RUTA_RUTAS):
                 estancia = st.number_input("Estancia", min_value=0.0, value=float(ruta.get("Estancia", 0.0)))
                 casetas = st.number_input("Casetas", min_value=0.0, value=float(ruta.get("Casetas", 0.0)))
 
-            guardar = st.form_submit_button("💾 Guardar cambios")
+            guardar = st.form_submit_button("\ud83d\udcc5 Guardar cambios")
 
             if guardar:
                 tc_usd = valores.get("Tipo de cambio USD", 17.5)
@@ -107,6 +108,7 @@ if os.path.exists(RUTA_RUTAS):
                 # Guardar cambios
                 df.at[indice_editar, "Fecha"] = fecha
                 df.at[indice_editar, "Tipo"] = tipo
+                df.at[indice_editar, "Clasificación Ruta"] = clasificacion
                 df.at[indice_editar, "Modo_Viaje"] = modo_viaje
                 df.at[indice_editar, "Cliente"] = cliente
                 df.at[indice_editar, "Origen"] = origen
@@ -137,7 +139,7 @@ if os.path.exists(RUTA_RUTAS):
                 df.at[indice_editar, "Costo_Total_Ruta"] = costo_total
 
                 df.to_csv(RUTA_RUTAS, index=False)
-                st.success("✅ Ruta actualizada exitosamente.")
+                st.success("\u2705 Ruta actualizada exitosamente.")
                 st.stop()
 else:
     st.warning("⚠️ No hay rutas guardadas todavía.")
