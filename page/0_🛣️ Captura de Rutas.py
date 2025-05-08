@@ -7,17 +7,15 @@ from datetime import datetime
 RUTA_RUTAS = "rutas_guardadas.csv"
 RUTA_DATOS = "datos_generales.csv"
 
-# Inicializa estado si no existe
 if "revisar_ruta" not in st.session_state:
     st.session_state.revisar_ruta = False
 
-# Valores por defecto PICUS
+# Datos generales (solo los básicos)
 valores_por_defecto = {
     "Rendimiento Camion": 2.5,
     "Costo Diesel": 24.0,
     "Pago x KM (General)": 1.50,
     "Bono ISR IMSS": 462.66,
-    "Costos Indirectos Fijos": 7281.31,
     "Tipo de cambio USD": 17.5,
     "Tipo de cambio MXN": 1.0
 }
@@ -49,21 +47,20 @@ with st.expander("⚙️ Configurar Datos Generales"):
 
 st.markdown("---")
 
-# Cargar rutas existentes
 if os.path.exists(RUTA_RUTAS):
     df_rutas = pd.read_csv(RUTA_RUTAS)
 else:
     df_rutas = pd.DataFrame()
 
-st.subheader("🛣️ Nueva Ruta")
+st.subheader("🚣️ Nueva Ruta")
 
-# Formulario principal
 with st.form("captura_ruta"):
     col1, col2 = st.columns(2)
 
     with col1:
         fecha = st.date_input("Fecha", value=datetime.today())
         tipo = st.selectbox("Tipo de Ruta", ["IMPO", "EXPO", "VACIO"])
+        clasificacion_ruta = st.selectbox("Clasificación Ruta", ["RL", "RC"])
         cliente = st.text_input("Nombre Cliente")
         origen = st.text_input("Origen")
         destino = st.text_input("Destino")
@@ -87,16 +84,16 @@ with st.form("captura_ruta"):
     if revisar:
         st.session_state.revisar_ruta = True
         st.session_state.datos_captura = {
-            "fecha": fecha, "tipo": tipo, "cliente": cliente, "origen": origen, "destino": destino,
-            "modo_viaje": modo_viaje, "km": km,
-            "moneda_ingreso": moneda_ingreso, "ingreso_flete": ingreso_flete,
+            "fecha": fecha, "tipo": tipo, "clasificacion_ruta": clasificacion_ruta,
+            "cliente": cliente, "origen": origen, "destino": destino, "modo_viaje": modo_viaje,
+            "km": km, "moneda_ingreso": moneda_ingreso, "ingreso_flete": ingreso_flete,
             "moneda_cruce": moneda_cruce, "ingreso_cruce": ingreso_cruce,
             "moneda_costo_cruce": moneda_costo_cruce, "costo_cruce": costo_cruce,
             "movimiento_local": movimiento_local, "puntualidad": puntualidad,
             "pension": pension, "estancia": estancia, "casetas": casetas
         }
 
-if st.session_state.revisar_ruta and st.button("💾 Guardar Ruta"):
+if st.session_state.revisar_ruta and st.button("📅 Guardar Ruta"):
     d = st.session_state.datos_captura
 
     tipo_cambio_flete = valores["Tipo de cambio USD"] if d["moneda_ingreso"] == "USD" else valores["Tipo de cambio MXN"]
@@ -110,7 +107,6 @@ if st.session_state.revisar_ruta and st.button("💾 Guardar Ruta"):
 
     costo_diesel_camion = (d["km"] / valores["Rendimiento Camion"]) * valores["Costo Diesel"]
 
-    # Sueldo
     pago_km = valores["Pago x KM (General)"]
 
     if d["tipo"] in ["IMPO", "EXPO"]:
@@ -136,19 +132,19 @@ if st.session_state.revisar_ruta and st.button("💾 Guardar Ruta"):
     costo_total = costo_diesel_camion + sueldo + bono + d["casetas"] + extras + costo_cruce_convertido
 
     nueva_ruta = {
-        "Fecha": d["fecha"], "Tipo": d["tipo"], "Cliente": d["cliente"], "Origen": d["origen"], "Destino": d["destino"],
+        "Fecha": d["fecha"], "Tipo": d["tipo"], "Clasificación Ruta": d["clasificacion_ruta"],
+        "Cliente": d["cliente"], "Origen": d["origen"], "Destino": d["destino"],
         "Modo_Viaje": d["modo_viaje"], "KM": d["km"],
         "Moneda": d["moneda_ingreso"], "Ingreso_Original": d["ingreso_flete"], "Tipo de cambio": tipo_cambio_flete,
         "Ingreso Flete": ingreso_flete_convertido, "Moneda_Cruce": d["moneda_cruce"], "Cruce_Original": d["ingreso_cruce"],
         "Tipo cambio Cruce": tipo_cambio_cruce, "Ingreso Cruce": ingreso_cruce_convertido,
         "Moneda Costo Cruce": d["moneda_costo_cruce"], "Costo Cruce": d["costo_cruce"],
         "Costo Cruce Convertido": costo_cruce_convertido,
-        "Ingreso Total": ingreso_total,
-        "Pago por KM": pago_km, "Sueldo_Operador": sueldo, "Bono": bono,
+        "Ingreso Total": ingreso_total, "Pago por KM": pago_km,
+        "Sueldo_Operador": sueldo, "Bono": bono,
         "Casetas": d["casetas"], "Movimiento_Local": d["movimiento_local"],
         "Puntualidad": d["puntualidad"], "Pension": d["pension"], "Estancia": d["estancia"],
-        "Costo_Diesel_Camion": costo_diesel_camion,
-        "Costo_Extras": extras, "Costo_Total_Ruta": costo_total
+        "Costo_Diesel_Camion": costo_diesel_camion, "Costo_Extras": extras, "Costo_Total_Ruta": costo_total
     }
 
     df_rutas = pd.concat([df_rutas, pd.DataFrame([nueva_ruta])], ignore_index=True)
