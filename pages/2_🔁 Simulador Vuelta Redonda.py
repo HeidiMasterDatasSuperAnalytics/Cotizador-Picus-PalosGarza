@@ -68,11 +68,11 @@ if os.path.exists(RUTA_RUTAS):
     # Paso 3: sugerencia secundaria
     st.markdown("---")
     if tipo_principal == "IMPO":
-        st.subheader("\ud83d\udccc Paso 3: Ruta EXPO sugerida (opcional)")
+        st.subheader("📌 Paso 3: Ruta EXPO sugerida (opcional)")
         origen_expo = ruta_vacio["Destino"] if ruta_vacio is not None else destino_ref
         candidatos = expo_rutas[expo_rutas["Origen"] == origen_expo].copy()
     else:
-        st.subheader("\ud83d\udccc Paso 3: Ruta IMPO sugerida (opcional)")
+        st.subheader("📌 Paso 3: Ruta IMPO sugerida (opcional)")
         origen_impo = ruta_vacio["Destino"] if ruta_vacio is not None else destino_ref
         candidatos = impo_rutas[impo_rutas["Origen"] == origen_impo].copy()
 
