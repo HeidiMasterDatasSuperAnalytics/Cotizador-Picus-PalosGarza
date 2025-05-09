@@ -85,7 +85,41 @@ with st.form("registro_trafico"):
             st.success("✅ Tráfico registrado exitosamente.")
 
 # =====================================
-# 2. COMPLETAR Y SIMULAR TRÁFICO
+# 2. GESTIÓN DE TRÁFICOS
+# =====================================
+st.markdown("---")
+st.header("🛠️ Gestión de Tráficos Programados")
+
+if os.path.exists(RUTA_PROG):
+    df_prog = pd.read_csv(RUTA_PROG)
+
+    if "ID_Programacion" in df_prog.columns:
+        ids = df_prog["ID_Programacion"].dropna().unique()
+        id_edit = st.selectbox("Selecciona un tráfico para editar o eliminar", ids)
+        df_filtrado = df_prog[df_prog["ID_Programacion"] == id_edit].reset_index()
+        st.write("**Vista previa del tráfico seleccionado:**")
+        st.dataframe(df_filtrado)
+
+        if st.button("🗑️ Eliminar tráfico completo"):
+            df_prog = df_prog[df_prog["ID_Programacion"] != id_edit]
+            df_prog.to_csv(RUTA_PROG, index=False)
+            st.success("✅ Tráfico eliminado exitosamente.")
+            st.experimental_rerun()
+
+        tramo_ida = df_filtrado[df_filtrado["Tramo"] == "IDA"].iloc[0]
+        with st.form("editar_trafico"):
+            nueva_unidad = st.text_input("Editar Unidad", value=tramo_ida["Unidad"])
+            nuevo_operador = st.text_input("Editar Operador", value=tramo_ida["Operador"])
+            editar_btn = st.form_submit_button("💾 Guardar cambios")
+
+            if editar_btn:
+                df_prog.loc[(df_prog["ID_Programacion"] == id_edit) & (df_prog["Tramo"] == "IDA"), "Unidad"] = nueva_unidad
+                df_prog.loc[(df_prog["ID_Programacion"] == id_edit) & (df_prog["Tramo"] == "IDA"), "Operador"] = nuevo_operador
+                df_prog.to_csv(RUTA_PROG, index=False)
+                st.success("✅ Cambios guardados exitosamente.")
+
+# =====================================
+# 3. COMPLETAR Y SIMULAR TRÁFICO DETALLADO
 # =====================================
 st.markdown("---")
 st.title("🔁 Completar y Simular Tráfico Detallado")
@@ -177,3 +211,4 @@ if not incompletos.empty:
         st.success("✅ Tráfico cerrado exitosamente.")
 else:
     st.info("No hay tráficos pendientes.")
+
