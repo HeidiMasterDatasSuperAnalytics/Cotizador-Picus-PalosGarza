@@ -51,19 +51,20 @@ if os.path.exists(RUTA_RUTAS):
                 cliente = st.text_input("Cliente", value=ruta.get("Cliente", ""))
                 origen = st.text_input("Origen", value=ruta.get("Origen", ""))
                 destino = st.text_input("Destino", value=ruta.get("Destino", ""))
-                km = st.number_input("Kilómetros", min_value=0.0, value=float(ruta.get("KM", 0.0)))
+                 km = st.number_input("Kilómetros", min_value=0.0, value=float(ruta.get("KM", 0.0)))
+                casetas = st.number_input("Casetas", min_value=0.0, value=float(ruta.get("Casetas", 0.0)))
+
+            with col2:
                 moneda_ingreso = st.selectbox("Moneda Flete", ["MXN", "USD"], index=["MXN", "USD"].index(ruta.get("Moneda", "MXN")))
                 ingreso_original = st.number_input("Ingreso Flete Original", min_value=0.0, value=float(ruta.get("Ingreso_Original", 0.0)))
                 moneda_cruce = st.selectbox("Moneda Cruce", ["MXN", "USD"], index=["MXN", "USD"].index(ruta.get("Moneda_Cruce", "MXN")))
                 ingreso_cruce = st.number_input("Ingreso Cruce Original", min_value=0.0, value=float(ruta.get("Cruce_Original", 0.0)))
                 moneda_costo_cruce = st.selectbox("Moneda Costo Cruce", ["MXN", "USD"], index=["MXN", "USD"].index(ruta.get("Moneda Costo Cruce", "MXN")))
                 costo_cruce = st.number_input("Costo Cruce", min_value=0.0, value=float(ruta.get("Costo Cruce", 0.0)))
-            with col2:
                 movimiento_local = st.number_input("Movimiento Local", min_value=0.0, value=float(ruta.get("Movimiento_Local", 0.0)))
                 puntualidad = st.number_input("Puntualidad", min_value=0.0, value=float(ruta.get("Puntualidad", 0.0)))
                 pension = st.number_input("Pensión", min_value=0.0, value=float(ruta.get("Pension", 0.0)))
                 estancia = st.number_input("Estancia", min_value=0.0, value=float(ruta.get("Estancia", 0.0)))
-                casetas = st.number_input("Casetas", min_value=0.0, value=float(ruta.get("Casetas", 0.0)))
 
             guardar = st.form_submit_button("\ud83d\udcc5 Guardar cambios")
 
