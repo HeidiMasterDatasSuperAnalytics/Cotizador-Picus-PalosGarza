@@ -27,12 +27,12 @@ st.markdown(f"""
 # Instrucciones o navegación
 st.subheader("\U0001F4C2 Módulos disponibles")
 st.markdown("""
-- **0_🛣️ Captura de Rutas:** Ingreso de datos de nuevas rutas
-- **1_🔍 Consulta Individual de Ruta:** Análisis detallado por registro
-- **2_🔁 Simulador Vuelta Redonda:** Combinaciones IMPO + VACIO + EXPO
-- **3_🗂️ Gestión de Rutas:** Editar y eliminar rutas existentes
-- **4_⚙️ Costos Indirectos:** Configurar costos indirectos RL/RC
-- **5_📂 Archivos:** Descargar / cargar respaldos de datos
+- **🛣️ Captura de Rutas:** Ingreso de datos de nuevas rutas
+- **🔍 Consulta Individual de Ruta:** Análisis detallado por registro
+- **🔁 Simulador Vuelta Redonda:** Combinaciones IMPO + VACIO + EXPO
+- **🗂️ Gestión de Rutas:** Editar y eliminar rutas existentes
+- **⚙️ Costos Indirectos:** Configurar costos indirectos RL/RC
+- **📂 Archivos:** Descargar / cargar respaldos de datos
 """)
 
 st.info("Selecciona una opción desde el menú lateral para comenzar")
