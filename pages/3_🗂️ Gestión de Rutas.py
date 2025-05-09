@@ -66,7 +66,7 @@ if os.path.exists(RUTA_RUTAS):
                 pension = st.number_input("Pensión", min_value=0.0, value=float(ruta.get("Pension", 0.0)))
                 estancia = st.number_input("Estancia", min_value=0.0, value=float(ruta.get("Estancia", 0.0)))
 
-            guardar = st.form_submit_button("\ud83d\udcc5 Guardar cambios")
+            guardar = st.form_submit_button("📅 Guardar cambios")
 
             if guardar:
                 tc_usd = valores.get("Tipo de cambio USD", 17.5)
