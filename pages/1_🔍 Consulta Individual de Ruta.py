@@ -16,7 +16,7 @@ def cargar_datos_generales():
 
 valores = cargar_datos_generales()
 
-st.title("\U0001F50D Consulta Individual de Ruta")
+st.title("🔍 Consulta Individual de Ruta")
 
 if os.path.exists(RUTA_RUTAS):
     df = pd.read_csv(RUTA_RUTAS)
