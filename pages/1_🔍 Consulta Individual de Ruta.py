@@ -21,7 +21,7 @@ st.title("\U0001F50D Consulta Individual de Ruta")
 if os.path.exists(RUTA_RUTAS):
     df = pd.read_csv(RUTA_RUTAS)
 
-    st.subheader("\ud83d\udccc Selecciona una Ruta")
+    st.subheader("📌 Selecciona una Ruta")
     index_sel = st.selectbox(
         "Selecciona \u00edndice",
         df.index.tolist(),
