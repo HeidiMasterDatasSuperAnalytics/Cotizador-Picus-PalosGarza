@@ -51,7 +51,7 @@ if os.path.exists(RUTA_RUTAS):
     # 📊 Ingresos y Utilidades
     # =====================
     st.markdown("---")
-    st.subheader("\ud83d\udcca Ingresos y Utilidades")
+    st.subheader("📊 Ingresos y Utilidades")
 
     st.write(f"**Ingreso Total:** ${ingreso_total:,.2f}")
     st.write(f"**Costo Total:** ${costo_total:,.2f}")
@@ -65,7 +65,7 @@ if os.path.exists(RUTA_RUTAS):
     # 📋 Detalles y Costos
     # =====================
     st.markdown("---")
-    st.subheader("\ud83d\udccb Detalles y Costos de la Ruta")
+    st.subheader("📋 Detalles y Costos de la Ruta")
 
     detalles = [
         f"Fecha: {ruta['Fecha']}",
