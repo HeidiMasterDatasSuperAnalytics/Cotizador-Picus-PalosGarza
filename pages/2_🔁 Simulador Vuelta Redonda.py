@@ -16,7 +16,7 @@ def cargar_datos_generales():
 
 valores = cargar_datos_generales()
 
-st.title("\U0001F501 Simulador de Vuelta Redonda")
+st.title("🔁 Simulador de Vuelta Redonda")
 
 if os.path.exists(RUTA_RUTAS):
     df = pd.read_csv(RUTA_RUTAS)
@@ -25,7 +25,7 @@ if os.path.exists(RUTA_RUTAS):
     expo_rutas = df[df["Tipo"] == "EXPO"].copy()
     vacio_rutas = df[df["Tipo"] == "VACIO"].copy()
 
-    st.subheader("\ud83d\udccc Paso 1: Selecciona tipo de ruta principal")
+    st.subheader("📌 Paso 1: Selecciona tipo de ruta principal")
     tipo_principal = st.selectbox("Tipo principal", ["IMPO", "EXPO"])
 
     ruta_principal = None
@@ -58,7 +58,7 @@ if os.path.exists(RUTA_RUTAS):
     destino_ref = ruta_principal["Destino"]
     vacios = vacio_rutas[vacio_rutas["Origen"] == destino_ref].copy()
     st.markdown("---")
-    st.subheader("\ud83d\udccc Paso 2: Ruta VACÍA sugerida (opcional)")
+    st.subheader("📌 Paso 2: Ruta VACÍA sugerida (opcional)")
     if not vacios.empty:
         vacio_idx = st.selectbox("Ruta VACÍA (Origen = " + destino_ref + ")", vacios.index,
                                  format_func=lambda x: f"{vacios.loc[x, 'Origen']} → {vacios.loc[x, 'Destino']}")
@@ -86,7 +86,7 @@ if os.path.exists(RUTA_RUTAS):
         rutas_seleccionadas.append(ruta_secundaria)
 
     # Simular
-    if st.button("\U0001F69B Simular Vuelta Redonda"):
+    if st.button("🚛 Simular Vuelta Redonda"):
         ingreso_total = sum(safe_number(r.get("Ingreso Total", 0)) for r in rutas_seleccionadas)
         costo_total_general = sum(safe_number(r.get("Costo_Total_Ruta", 0)) for r in rutas_seleccionadas)
 
@@ -107,7 +107,7 @@ if os.path.exists(RUTA_RUTAS):
         pct_neta = (utilidad_neta / ingreso_total * 100) if ingreso_total > 0 else 0
 
         st.markdown("---")
-        st.markdown("## \ud83d\udcc4 Detalle de Rutas")
+        st.markdown("📄 Detalle de Rutas")
         for r in rutas_seleccionadas:
             st.markdown(f"**{r['Tipo']} — {r.get('Cliente', 'N/A')}**")
             st.markdown(f"- {r['Origen']} → {r['Destino']}")
@@ -117,7 +117,7 @@ if os.path.exists(RUTA_RUTAS):
             st.markdown(f"- Costo Total Ruta: ${safe_number(r.get('Costo_Total_Ruta')):,.2f}")
             st.markdown("---")
 
-        st.subheader("\ud83d\udcca Resultado General")
+        st.subheader("📊 Resultado General")
         st.markdown(f"**Ingreso Total:** ${ingreso_total:,.2f}")
         st.markdown(f"**Costo Total:** ${costo_total_general:,.2f}")
         st.markdown(f"**Utilidad Bruta:** ${utilidad_bruta:,.2f}")
