@@ -15,18 +15,18 @@ def cargar_datos_generales():
 def safe_number(x):
     return 0 if (x is None or (isinstance(x, float) and pd.isna(x))) else x
 
-st.title("\U0001F5C2\ufe0f Gestión de Rutas Guardadas")
+st.title("🗂️ Gestión de Rutas Guardadas")
 
 if os.path.exists(RUTA_RUTAS):
     df = pd.read_csv(RUTA_RUTAS)
     valores = cargar_datos_generales()
 
-    st.subheader("\ud83d\udccb Rutas Registradas")
+    st.subheader("📋 Rutas Registradas")
     st.dataframe(df, use_container_width=True)
     st.markdown(f"**Total de rutas registradas:** {len(df)}")
     st.markdown("---")
 
-    st.subheader("\ud83d\uddd1\ufe0f Eliminar rutas")
+    st.subheader("🗑️ Eliminar rutas")
     indices = st.multiselect("Selecciona los índices a eliminar", df.index.tolist())
     if st.button("Eliminar rutas seleccionadas") and indices:
         df.drop(index=indices, inplace=True)
@@ -36,7 +36,7 @@ if os.path.exists(RUTA_RUTAS):
         st.experimental_rerun()
 
     st.markdown("---")
-    st.subheader("\u270f\ufe0f Editar Ruta Existente")
+    st.subheader("✏️ Editar Ruta Existente")
     indice_editar = st.selectbox("Selecciona el índice a editar", df.index.tolist())
     if indice_editar is not None:
         ruta = df.loc[indice_editar]
