@@ -32,7 +32,7 @@ if os.path.exists(RUTA_RUTAS):
         df.drop(index=indices, inplace=True)
         df.reset_index(drop=True, inplace=True)
         df.to_csv(RUTA_RUTAS, index=False)
-        st.success("\u2705 Rutas eliminadas correctamente.")
+        st.success("✅ Rutas eliminadas correctamente.")
         st.experimental_rerun()
 
     st.markdown("---")
@@ -46,7 +46,6 @@ if os.path.exists(RUTA_RUTAS):
             with col1:
                 fecha = st.date_input("Fecha", pd.to_datetime(ruta.get("Fecha", pd.Timestamp.now())))
                 tipo = st.selectbox("Tipo", ["IMPO", "EXPO", "VACIO"], index=["IMPO", "EXPO", "VACIO"].index(ruta.get("Tipo", "IMPO")))
-                clasificacion = st.selectbox("Clasificación Ruta", ["RL", "RC"], index=["RL", "RC"].index(ruta.get("Clasificación Ruta", "RL")))
                 modo_viaje = st.selectbox("Modo de viaje", ["Operador", "Team"], index=["Operador", "Team"].index(ruta.get("Modo_Viaje", "Operador")))
                 cliente = st.text_input("Cliente", value=ruta.get("Cliente", ""))
                 origen = st.text_input("Origen", value=ruta.get("Origen", ""))
@@ -61,10 +60,21 @@ if os.path.exists(RUTA_RUTAS):
                 ingreso_cruce = st.number_input("Ingreso Cruce Original", min_value=0.0, value=float(ruta.get("Cruce_Original", 0.0)))
                 moneda_costo_cruce = st.selectbox("Moneda Costo Cruce", ["MXN", "USD"], index=["MXN", "USD"].index(ruta.get("Moneda Costo Cruce", "MXN")))
                 costo_cruce = st.number_input("Costo Cruce", min_value=0.0, value=float(ruta.get("Costo Cruce", 0.0)))
+
+            st.markdown("### 🧾 Costos Extras")
+            col3, col4 = st.columns(2)
+            with col3:
                 movimiento_local = st.number_input("Movimiento Local", min_value=0.0, value=float(ruta.get("Movimiento_Local", 0.0)))
                 puntualidad = st.number_input("Puntualidad", min_value=0.0, value=float(ruta.get("Puntualidad", 0.0)))
                 pension = st.number_input("Pensión", min_value=0.0, value=float(ruta.get("Pension", 0.0)))
+                pistas_extra = st.number_input("Pistas Extra", min_value=0.0, value=float(ruta.get("Pistas Extra", 0.0)))
+            with col4:
                 estancia = st.number_input("Estancia", min_value=0.0, value=float(ruta.get("Estancia", 0.0)))
+                stop = st.number_input("Stop", min_value=0.0, value=float(ruta.get("Stop", 0.0)))
+                falso = st.number_input("Falso", min_value=0.0, value=float(ruta.get("Falso", 0.0)))
+                gatas = st.number_input("Gatas", min_value=0.0, value=float(ruta.get("Gatas", 0.0)))
+                accesorios = st.number_input("Accesorios", min_value=0.0, value=float(ruta.get("Accesorios", 0.0)))
+                guias = st.number_input("Guías", min_value=0.0, value=float(ruta.get("Guías", 0.0)))
 
             guardar = st.form_submit_button("📅 Guardar cambios")
 
@@ -85,31 +95,30 @@ if os.path.exists(RUTA_RUTAS):
                 costo_diesel_camion = (km / rendimiento_camion) * costo_diesel
 
                 pago_km = valores.get("Pago x KM (General)", 1.50)
-
-                if tipo in ["IMPO", "EXPO"]:
-                    sueldo = km * pago_km
-                    bono = valores.get("Bono ISR IMSS", 462.66)
-                elif tipo == "VACIO":
-                    if km < 1000:
-                        sueldo = 200
-                    else:
-                        sueldo = km * pago_km
-                    bono = 0
+                bono_isr = valores.get("Bono ISR IMSS", 462.66)
+                bono_rendimiento = valores.get("Bono Rendimiento", 250.0)
 
                 if modo_viaje == "Team":
-                    sueldo *= 2
+                    sueldo = 1300
+                    bono = bono_isr * 2
+                else:
+                    if tipo == "VACIO":
+                        sueldo = 100 if km < 100 else km * pago_km
+                        bono = 0
+                    else:
+                        sueldo = km * pago_km
+                        bono = bono_isr
 
-                extras = sum([
-                    safe_number(movimiento_local), safe_number(puntualidad),
-                    safe_number(pension), safe_number(estancia)
-                ])
+                extras = sum(map(safe_number, [
+                    movimiento_local, puntualidad, pension, estancia,
+                    pistas_extra, stop, falso, gatas, accesorios, guias
+                ]))
 
-                costo_total = costo_diesel_camion + sueldo + bono + casetas + extras + costo_cruce_convertido
+                costo_total = costo_diesel_camion + sueldo + bono + bono_rendimiento + casetas + extras + costo_cruce_convertido
 
                 # Guardar cambios
                 df.at[indice_editar, "Fecha"] = fecha
                 df.at[indice_editar, "Tipo"] = tipo
-                df.at[indice_editar, "Clasificación Ruta"] = clasificacion
                 df.at[indice_editar, "Modo_Viaje"] = modo_viaje
                 df.at[indice_editar, "Cliente"] = cliente
                 df.at[indice_editar, "Origen"] = origen
@@ -130,17 +139,24 @@ if os.path.exists(RUTA_RUTAS):
                 df.at[indice_editar, "Pago por KM"] = pago_km
                 df.at[indice_editar, "Sueldo_Operador"] = sueldo
                 df.at[indice_editar, "Bono"] = bono
+                df.at[indice_editar, "Bono Rendimiento"] = bono_rendimiento
                 df.at[indice_editar, "Casetas"] = casetas
                 df.at[indice_editar, "Movimiento_Local"] = movimiento_local
                 df.at[indice_editar, "Puntualidad"] = puntualidad
                 df.at[indice_editar, "Pension"] = pension
                 df.at[indice_editar, "Estancia"] = estancia
+                df.at[indice_editar, "Pistas Extra"] = pistas_extra
+                df.at[indice_editar, "Stop"] = stop
+                df.at[indice_editar, "Falso"] = falso
+                df.at[indice_editar, "Gatas"] = gatas
+                df.at[indice_editar, "Accesorios"] = accesorios
+                df.at[indice_editar, "Guías"] = guias
                 df.at[indice_editar, "Costo_Diesel_Camion"] = costo_diesel_camion
                 df.at[indice_editar, "Costo_Extras"] = extras
                 df.at[indice_editar, "Costo_Total_Ruta"] = costo_total
 
                 df.to_csv(RUTA_RUTAS, index=False)
-                st.success("\u2705 Ruta actualizada exitosamente.")
+                st.success("✅ Ruta actualizada exitosamente.")
                 st.stop()
 else:
     st.warning("⚠️ No hay rutas guardadas todavía.")
