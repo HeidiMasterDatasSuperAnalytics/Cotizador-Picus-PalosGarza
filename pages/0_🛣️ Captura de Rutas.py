@@ -7,15 +7,13 @@ from datetime import datetime
 RUTA_RUTAS = "rutas_guardadas.csv"
 RUTA_DATOS = "datos_generales.csv"
 
-if "revisar_ruta" not in st.session_state:
-    st.session_state.revisar_ruta = False
-
-# Datos generales (solo los básicos)
+# Valores por defecto
 valores_por_defecto = {
     "Rendimiento Camion": 2.5,
     "Costo Diesel": 24.0,
     "Pago x KM (General)": 1.50,
     "Bono ISR IMSS": 462.66,
+    "Bono Rendimiento": 250.0,
     "Tipo de cambio USD": 17.5,
     "Tipo de cambio MXN": 1.0
 }
@@ -35,7 +33,7 @@ def safe_number(x):
 
 valores = cargar_datos_generales()
 
-st.title("🚛 Captura de Rutas PICUS")
+st.title("🚛 Captura de Rutas Largas - PICUS")
 
 # Configurar Datos Generales
 with st.expander("⚙️ Configurar Datos Generales"):
@@ -52,7 +50,7 @@ if os.path.exists(RUTA_RUTAS):
 else:
     df_rutas = pd.DataFrame()
 
-st.subheader("🚣️ Nueva Ruta")
+st.subheader("🚣️ Nueva Ruta Larga")
 
 with st.form("captura_ruta"):
     col1, col2 = st.columns(2)
@@ -60,7 +58,6 @@ with st.form("captura_ruta"):
     with col1:
         fecha = st.date_input("Fecha", value=datetime.today())
         tipo = st.selectbox("Tipo de Ruta", ["IMPO", "EXPO", "VACIO"])
-        clasificacion_ruta = st.selectbox("Clasificación Ruta", ["RL", "RC"])
         cliente = st.text_input("Nombre Cliente")
         origen = st.text_input("Origen")
         destino = st.text_input("Destino")
@@ -80,76 +77,70 @@ with st.form("captura_ruta"):
         pension = st.number_input("Pensión", min_value=0.0)
         estancia = st.number_input("Estancia", min_value=0.0)
 
+    st.markdown("---")
+    st.subheader("🧾 Costos Extras Adicionales")
+    col3, col4 = st.columns(2)
+    with col3:
+        pistas_extra = st.number_input("Pistas Extra", min_value=0.0)
+        stop = st.number_input("Stop", min_value=0.0)
+        falso = st.number_input("Falso", min_value=0.0)
+    with col4:
+        gatas = st.number_input("Gatas", min_value=0.0)
+        accesorios = st.number_input("Accesorios", min_value=0.0)
+        guias = st.number_input("Guías", min_value=0.0)
+
     revisar = st.form_submit_button("🔍 Revisar Ruta")
     if revisar:
-        st.session_state.revisar_ruta = True
-        st.session_state.datos_captura = {
-            "fecha": fecha, "tipo": tipo, "clasificacion_ruta": clasificacion_ruta,
-            "cliente": cliente, "origen": origen, "destino": destino, "modo_viaje": modo_viaje,
-            "km": km, "moneda_ingreso": moneda_ingreso, "ingreso_flete": ingreso_flete,
-            "moneda_cruce": moneda_cruce, "ingreso_cruce": ingreso_cruce,
-            "moneda_costo_cruce": moneda_costo_cruce, "costo_cruce": costo_cruce,
-            "movimiento_local": movimiento_local, "puntualidad": puntualidad,
-            "pension": pension, "estancia": estancia, "casetas": casetas
+        tipo_cambio_flete = valores["Tipo de cambio USD"] if moneda_ingreso == "USD" else valores["Tipo de cambio MXN"]
+        tipo_cambio_cruce = valores["Tipo de cambio USD"] if moneda_cruce == "USD" else valores["Tipo de cambio MXN"]
+        tipo_cambio_costo_cruce = valores["Tipo de cambio USD"] if moneda_costo_cruce == "USD" else valores["Tipo de cambio MXN"]
+
+        ingreso_flete_convertido = ingreso_flete * tipo_cambio_flete
+        ingreso_cruce_convertido = ingreso_cruce * tipo_cambio_cruce
+        costo_cruce_convertido = costo_cruce * tipo_cambio_costo_cruce
+        ingreso_total = ingreso_flete_convertido + ingreso_cruce_convertido
+
+        costo_diesel_camion = (km / valores["Rendimiento Camion"]) * valores["Costo Diesel"]
+
+        pago_km = valores["Pago x KM (General)"]
+        if tipo == "VACIO":
+            sueldo = 100 if km < 100 else km * pago_km
+            bono = 0
+        else:
+            sueldo = km * pago_km
+            bono = valores["Bono ISR IMSS"]
+
+        if modo_viaje == "Team":
+            sueldo *= 2
+
+        extras = sum(map(safe_number, [
+            movimiento_local, puntualidad, pension, estancia,
+            pistas_extra, stop, falso, gatas, accesorios, guias
+        ]))
+
+        bono_rendimiento = valores["Bono Rendimiento"]
+
+        costo_total = costo_diesel_camion + sueldo + bono + bono_rendimiento + casetas + extras + costo_cruce_convertido
+
+        nueva_ruta = {
+            "Fecha": fecha, "Tipo": tipo, "Cliente": cliente, "Origen": origen, "Destino": destino,
+            "Modo_Viaje": modo_viaje, "KM": km,
+            "Moneda": moneda_ingreso, "Ingreso_Original": ingreso_flete, "Tipo de cambio": tipo_cambio_flete,
+            "Ingreso Flete": ingreso_flete_convertido, "Moneda_Cruce": moneda_cruce, "Cruce_Original": ingreso_cruce,
+            "Tipo cambio Cruce": tipo_cambio_cruce, "Ingreso Cruce": ingreso_cruce_convertido,
+            "Moneda Costo Cruce": moneda_costo_cruce, "Costo Cruce": costo_cruce,
+            "Costo Cruce Convertido": costo_cruce_convertido, "Ingreso Total": ingreso_total,
+            "Pago por KM": pago_km, "Sueldo_Operador": sueldo, "Bono": bono,
+            "Bono Rendimiento": bono_rendimiento, "Casetas": casetas,
+            "Movimiento_Local": movimiento_local, "Puntualidad": puntualidad,
+            "Pension": pension, "Estancia": estancia,
+            "Pistas Extra": pistas_extra, "Stop": stop, "Falso": falso,
+            "Gatas": gatas, "Accesorios": accesorios, "Guías": guias,
+            "Costo_Diesel_Camion": costo_diesel_camion, "Costo_Extras": extras,
+            "Costo_Total_Ruta": costo_total
         }
 
-if st.session_state.revisar_ruta and st.button("📅 Guardar Ruta"):
-    d = st.session_state.datos_captura
-
-    tipo_cambio_flete = valores["Tipo de cambio USD"] if d["moneda_ingreso"] == "USD" else valores["Tipo de cambio MXN"]
-    tipo_cambio_cruce = valores["Tipo de cambio USD"] if d["moneda_cruce"] == "USD" else valores["Tipo de cambio MXN"]
-    tipo_cambio_costo_cruce = valores["Tipo de cambio USD"] if d["moneda_costo_cruce"] == "USD" else valores["Tipo de cambio MXN"]
-
-    ingreso_flete_convertido = d["ingreso_flete"] * tipo_cambio_flete
-    ingreso_cruce_convertido = d["ingreso_cruce"] * tipo_cambio_cruce
-    costo_cruce_convertido = d["costo_cruce"] * tipo_cambio_costo_cruce
-    ingreso_total = ingreso_flete_convertido + ingreso_cruce_convertido
-
-    costo_diesel_camion = (d["km"] / valores["Rendimiento Camion"]) * valores["Costo Diesel"]
-
-    pago_km = valores["Pago x KM (General)"]
-
-    if d["tipo"] in ["IMPO", "EXPO"]:
-        sueldo = d["km"] * pago_km
-        bono = valores["Bono ISR IMSS"]
-    elif d["tipo"] == "VACIO":
-        if d["km"] < 1000:
-            sueldo = 200
-        else:
-            sueldo = d["km"] * pago_km
-        bono = 0
-
-    if d["modo_viaje"] == "Team":
-        sueldo *= 2
-
-    extras = sum([
-        safe_number(d["movimiento_local"]),
-        safe_number(d["puntualidad"]),
-        safe_number(d["pension"]),
-        safe_number(d["estancia"])
-    ])
-
-    costo_total = costo_diesel_camion + sueldo + bono + d["casetas"] + extras + costo_cruce_convertido
-
-    nueva_ruta = {
-        "Fecha": d["fecha"], "Tipo": d["tipo"], "Clasificación Ruta": d["clasificacion_ruta"],
-        "Cliente": d["cliente"], "Origen": d["origen"], "Destino": d["destino"],
-        "Modo_Viaje": d["modo_viaje"], "KM": d["km"],
-        "Moneda": d["moneda_ingreso"], "Ingreso_Original": d["ingreso_flete"], "Tipo de cambio": tipo_cambio_flete,
-        "Ingreso Flete": ingreso_flete_convertido, "Moneda_Cruce": d["moneda_cruce"], "Cruce_Original": d["ingreso_cruce"],
-        "Tipo cambio Cruce": tipo_cambio_cruce, "Ingreso Cruce": ingreso_cruce_convertido,
-        "Moneda Costo Cruce": d["moneda_costo_cruce"], "Costo Cruce": d["costo_cruce"],
-        "Costo Cruce Convertido": costo_cruce_convertido,
-        "Ingreso Total": ingreso_total, "Pago por KM": pago_km,
-        "Sueldo_Operador": sueldo, "Bono": bono,
-        "Casetas": d["casetas"], "Movimiento_Local": d["movimiento_local"],
-        "Puntualidad": d["puntualidad"], "Pension": d["pension"], "Estancia": d["estancia"],
-        "Costo_Diesel_Camion": costo_diesel_camion, "Costo_Extras": extras, "Costo_Total_Ruta": costo_total
-    }
-
-    df_rutas = pd.concat([df_rutas, pd.DataFrame([nueva_ruta])], ignore_index=True)
-    df_rutas.to_csv(RUTA_RUTAS, index=False)
-    st.success("✅ Ruta guardada exitosamente.")
-    st.session_state.revisar_ruta = False
-    del st.session_state["datos_captura"]
-    st.experimental_rerun()
+        df_rutas = pd.concat([df_rutas, pd.DataFrame([nueva_ruta])], ignore_index=True)
+        df_rutas.to_csv(RUTA_RUTAS, index=False)
+        st.success("✅ Ruta larga guardada exitosamente.")
+        st.experimental_rerun()
