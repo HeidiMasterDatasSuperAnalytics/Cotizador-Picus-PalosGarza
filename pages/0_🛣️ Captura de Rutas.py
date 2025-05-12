@@ -74,8 +74,6 @@ with st.form("captura_ruta"):
         costo_cruce = st.number_input("Costo Cruce", min_value=0.0)
         movimiento_local = st.number_input("Movimiento Local", min_value=0.0)
         puntualidad = st.number_input("Puntualidad", min_value=0.0)
-        pension = st.number_input("Pensión", min_value=0.0)
-        estancia = st.number_input("Estancia", min_value=0.0)
 
     st.markdown("---")
     st.subheader("🧾 Costos Extras Adicionales")
@@ -84,10 +82,12 @@ with st.form("captura_ruta"):
         pistas_extra = st.number_input("Pistas Extra", min_value=0.0)
         stop = st.number_input("Stop", min_value=0.0)
         falso = st.number_input("Falso", min_value=0.0)
+        pension = st.number_input("Pensión", min_value=0.0)
     with col4:
         gatas = st.number_input("Gatas", min_value=0.0)
         accesorios = st.number_input("Accesorios", min_value=0.0)
         guias = st.number_input("Guías", min_value=0.0)
+        estancia = st.number_input("Estancia", min_value=0.0)
 
     revisar = st.form_submit_button("🔍 Revisar Ruta")
     if revisar:
