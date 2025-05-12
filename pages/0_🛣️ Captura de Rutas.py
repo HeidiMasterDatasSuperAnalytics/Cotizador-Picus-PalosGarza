@@ -43,8 +43,6 @@ with st.expander("⚙️ Configurar Datos Generales"):
         guardar_datos_generales(valores)
         st.success("✅ Datos Generales guardados correctamente.")
 
-st.markdown("---")
-
 if os.path.exists(RUTA_RUTAS):
     df_rutas = pd.read_csv(RUTA_RUTAS)
 else:
