@@ -110,30 +110,7 @@ if os.path.exists(RUTA_RUTAS):
         utilidad_neta = utilidad_bruta - costo_indirecto
 
         st.markdown("---")
-
-        resumen_data = []
-        for r in rutas:
-            resumen_data.append({
-                "Tipo": r["Tipo"],
-                "Cliente": r["Cliente"],
-                "Ruta": f"{r['Origen']} → {r['Destino']}",
-                "Moneda": r.get("Moneda", "MXN"),
-                "Ingreso": safe(r["Ingreso Total"]),
-                "Costo Total": calcular_costos(r, valores),
-                "Utilidad": safe(r["Ingreso Total"]) - calcular_costos(r, valores)
-            })
-
-        resumen_df = pd.DataFrame(resumen_data)[["Tipo", "Cliente", "Ruta", "Moneda", "Ingreso", "Costo Total", "Utilidad"]]
-        st.subheader("📋 Detalle de Rutas Seleccionadas")
-        st.dataframe(resumen_df)
-
         st.subheader("📊 Resultado de Simulación")
-        st.metric("Ingreso Total", f"${ingreso_total:,.2f}")
-        st.metric("Costo Total", f"${costo_total:,.2f}")
-        st.metric("Utilidad Bruta", f"${utilidad_bruta:,.2f}")
-        st.metric("Costo Indirecto (35%)", f"${costo_indirecto:,.2f}")
-        st.metric("Utilidad Neta", f"${utilidad_neta:,.2f}")
-
         st.metric("Ingreso Total", f"${ingreso_total:,.2f}")
         st.metric("Costo Total", f"${costo_total:,.2f}")
         st.metric("Utilidad Bruta", f"${utilidad_bruta:,.2f}")
