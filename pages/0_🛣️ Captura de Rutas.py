@@ -63,15 +63,15 @@ with st.form("captura_ruta"):
         destino = st.text_input("Destino")
         modo_viaje = st.selectbox("Modo de viaje", ["Operador", "Team"])
         km = st.number_input("Kilómetros", min_value=0.0)
+        casetas = st.number_input("Casetas", min_value=0.0)
+
+    with col2:
         moneda_ingreso = st.selectbox("Moneda Ingreso Flete", ["MXN", "USD"])
         ingreso_flete = st.number_input("Ingreso Flete", min_value=0.0)
-        
-    with col2:
         moneda_cruce = st.selectbox("Moneda Ingreso Cruce", ["MXN", "USD"])
         ingreso_cruce = st.number_input("Ingreso Cruce", min_value=0.0)
-         moneda_costo_cruce = st.selectbox("Moneda Costo Cruce", ["MXN", "USD"])
+        moneda_costo_cruce = st.selectbox("Moneda Costo Cruce", ["MXN", "USD"])
         costo_cruce = st.number_input("Costo Cruce", min_value=0.0)
-        casetas = st.number_input("Casetas", min_value=0.0)
         movimiento_local = st.number_input("Movimiento Local", min_value=0.0)
         puntualidad = st.number_input("Puntualidad", min_value=0.0)
         pension = st.number_input("Pensión", min_value=0.0)
@@ -103,22 +103,23 @@ with st.form("captura_ruta"):
         costo_diesel_camion = (km / valores["Rendimiento Camion"]) * valores["Costo Diesel"]
 
         pago_km = valores["Pago x KM (General)"]
-        if tipo == "VACIO":
-            sueldo = 100 if km < 100 else km * pago_km
-            bono = 0
-        else:
-            sueldo = km * pago_km
-            bono = valores["Bono ISR IMSS"]
+        bono_rendimiento = valores["Bono Rendimiento"]
 
         if modo_viaje == "Team":
-            sueldo *= 2
+            sueldo = 1300
+            bono = 0
+        else:
+            if tipo == "VACIO":
+                sueldo = 100 if km < 100 else km * pago_km
+                bono = 0
+            else:
+                sueldo = km * pago_km
+                bono = valores["Bono ISR IMSS"]
 
         extras = sum(map(safe_number, [
             movimiento_local, puntualidad, pension, estancia,
             pistas_extra, stop, falso, gatas, accesorios, guias
         ]))
-
-        bono_rendimiento = valores["Bono Rendimiento"]
 
         costo_total = costo_diesel_camion + sueldo + bono + bono_rendimiento + casetas + extras + costo_cruce_convertido
 
