@@ -264,5 +264,19 @@ if not pendientes.empty:
             nuevos.append(tramo)
         guardar_programacion(pd.DataFrame(nuevos))
         st.success("✅ Tráfico cerrado exitosamente.")
-else:
-    st.info("No hay tráficos pendientes.")
+
+# Mostrar Tráficos Concluidos
+st.markdown("---")
+st.subheader("✅ Tráficos Concluidos")
+
+if os.path.exists(RUTA_PROG):
+    df_prog = pd.read_csv(RUTA_PROG)
+    concluidos = df_prog.groupby("ID_Programacion").size().reset_index(name="Tramos")
+    concluidos = concluidos[concluidos["Tramos"] >= 2]["ID_Programacion"]
+
+    df_concluidos = df_prog[df_prog["ID_Programacion"].isin(concluidos)]
+
+    if not df_concluidos.empty:
+        st.dataframe(df_concluidos)
+    else:
+        st.info("No hay tráficos concluidos todavía.")
