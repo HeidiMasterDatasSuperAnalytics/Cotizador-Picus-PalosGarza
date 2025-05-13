@@ -141,6 +141,17 @@ if os.path.exists(RUTA_PROG):
     df_filtrado = df_prog[df_prog["ID_Programacion"] == id_edit].reset_index()
     st.dataframe(df_filtrado)
 
+    df_filtrado = df_prog[df_prog["ID_Programacion"] == id_edit].reset_index()
+    st.write("**Vista previa del tráfico seleccionado:**")
+    st.dataframe(df_filtrado)
+
+    if not df_filtrado[df_filtrado["Tramo"] == "IDA"].empty:
+        tramo_ida = df_filtrado[df_filtrado["Tramo"] == "IDA"].iloc[0]
+        with st.form("editar_trafico"):
+        # resto del código...
+    else:
+        st.info("Este tráfico ya fue concluido y no se puede editar.")
+
     tramo_ida = df_filtrado[df_filtrado["Tramo"] == "IDA"].iloc[0]
     with st.form("editar_trafico"):
         nueva_unidad = st.text_input("Unidad", value=tramo_ida["Unidad"])
