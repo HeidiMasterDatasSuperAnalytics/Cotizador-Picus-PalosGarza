@@ -218,7 +218,6 @@ if not pendientes.empty:
             origen_expo = vacio["Destino"]
             expo = df_rutas[(df_rutas["Tipo"] == tipo_regreso) & (df_rutas["Origen"] == origen_expo)]
             expo = asegurar_utilidad(expo)
-            expo = expo.sort_values(by="% Utilidad", ascending=False).iloc[0]
             if not expo.empty:
                 expo = expo.sort_values(by="% Utilidad", ascending=False).iloc[0]
                 total_ingreso = sum(safe(x) for x in [ida["Ingreso Total"], vacio["Ingreso Total"], expo["Ingreso Total"]])
