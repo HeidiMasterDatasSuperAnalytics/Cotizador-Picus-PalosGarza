@@ -134,7 +134,9 @@ st.header("🛠️ Gestión de Tráficos Programados")
 
 if os.path.exists(RUTA_PROG):
     df_prog = pd.read_csv(RUTA_PROG)
-    ids = df_prog["ID_Programacion"].dropna().unique()
+    incompletos = df_prog.groupby("ID_Programacion").size().reset_index(name="Tramos")
+    incompletos = incompletos[incompletos["Tramos"] == 1]["ID_Programacion"]
+    ids = incompletos.tolist()
     id_edit = st.selectbox("Selecciona un tráfico para editar", ids)
     df_filtrado = df_prog[df_prog["ID_Programacion"] == id_edit].reset_index()
     st.dataframe(df_filtrado)
