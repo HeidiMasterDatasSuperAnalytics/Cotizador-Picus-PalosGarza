@@ -96,12 +96,17 @@ costo_total = 0
 for r in rutas_seleccionadas:
     ingreso = safe(r["Ingreso Total"])
     costo = safe(r["Costo_Total_Ruta"])
-    bono = float(valores.get("Bono ISR", 0))
-    if modo == "Team":
-        bono *= 2
-
-    km = safe(r["KM"])
     tipo = r["Tipo"]
+    km = safe(r["KM"])
+
+    # Bono ISR solo si no es VACIO
+    bono = float(valores.get("Bono ISR", 0)) if tipo != "VACIO" else 0
+    if modo == "Team" and tipo != "VACIO":
+        bono *= 2
+    elif modo != "Team" and tipo == "VACIO":
+        bono = 0
+
+    # Sueldo
     if modo == "Team":
         sueldo = 650 * 2
     else:
@@ -114,8 +119,11 @@ for r in rutas_seleccionadas:
         else:
             sueldo = 0
 
+    # Bono de rendimiento solo si no es VACIO
+    rendimiento = safe(valores.get("Bono Rendimiento", 0)) if tipo != "VACIO" else 0
+
+    # Extras
     extras = sum(safe(r.get(campo, 0)) for campo in ["Pistas Extra", "Stop", "Falso", "Gatas", "Accesorios", "Guías"])
-    rendimiento = safe(valores.get("Bono Rendimiento", 0))
 
     total_costos = costo + sueldo + bono + extras + rendimiento
     ingreso_total += ingreso
