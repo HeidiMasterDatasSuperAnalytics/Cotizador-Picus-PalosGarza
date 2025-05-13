@@ -282,9 +282,21 @@ if os.path.exists(RUTA_PROG):
     concluidos = df_prog.groupby("ID_Programacion").size().reset_index(name="Tramos")
     concluidos = concluidos[concluidos["Tramos"] >= 2]["ID_Programacion"]
 
-    df_concluidos = df_prog[df_prog["ID_Programacion"].isin(concluidos)]
+    df_concluidos = df_prog[df_prog["ID_Programacion"].isin(concluidos)].copy()
 
     if not df_concluidos.empty:
-        st.dataframe(df_concluidos)
+        df_concluidos["Fecha"] = pd.to_datetime(df_concluidos["Fecha"])
+        st.markdown("### 📅 Filtro por Fecha")
+        fecha_inicio = st.date_input("Fecha inicio", value=df_concluidos["Fecha"].min().date())
+        fecha_fin = st.date_input("Fecha fin", value=df_concluidos["Fecha"].max().date())
+
+        filtro = (df_concluidos["Fecha"] >= pd.to_datetime(fecha_inicio)) & (df_concluidos["Fecha"] <= pd.to_datetime(fecha_fin))
+        df_filtrado = df_concluidos[filtro]
+
+        if not df_filtrado.empty:
+            st.dataframe(df_filtrado)
+        else:
+            st.warning("No hay tráficos concluidos en ese rango de fechas.")
     else:
         st.info("No hay tráficos concluidos todavía.")
+
