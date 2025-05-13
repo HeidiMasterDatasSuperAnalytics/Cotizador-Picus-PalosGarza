@@ -30,15 +30,17 @@ def calcular_costos(tramo, valores):
     modo = tramo.get("Modo_Viaje", "Operador")
     tipo = tramo.get("Tipo", "IMPO")
     casetas = safe(tramo.get("Casetas", 0))
-    bono_rend = float(valores.get("Bono Rendimiento", 250.0))
     pago_km = float(valores.get("Pago x KM (General)", 1.50))
-    bono_isr = float(valores.get("Bono ISR IMSS", 462.66))
     diesel = (km / float(valores["Rendimiento Camion"])) * float(valores["Costo Diesel"])
 
     extras = sum([safe(tramo.get(x, 0)) for x in [
         "Movimiento_Local", "Puntualidad", "Pension", "Estancia", "Pistas Extra", 
         "Stop", "Falso", "Gatas", "Accesorios", "Guías"
     ]])
+
+    # Bonos solo si no es VACIO
+    bono_isr = float(valores.get("Bono ISR IMSS", 462.66)) if tipo != "VACIO" else 0.0
+    bono_rend = float(valores.get("Bono Rendimiento", 250.0)) if tipo != "VACIO" else 0.0
 
     if modo == "Team":
         sueldo = 1300
