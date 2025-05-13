@@ -29,13 +29,29 @@ if os.path.exists(RUTA_RUTAS):
     )
 
     ruta = df.loc[index_sel]
-    modo_viaje = ruta.get("Modo_Viaje", "Operador")
+    tipo = ruta.get("Tipo", "IMPO")
+    km = safe_number(ruta.get("KM", 0))
+    modo = ruta.get("Modo_Viaje", "Operador")
 
+    # Bonos ajustados
+    bono_isr = float(valores.get("Bono ISR IMSS", 462.66)) if tipo != "VACIO" else 0.0
+    bono_rend = float(valores.get("Bono Rendimiento", 250.0)) if tipo != "VACIO" else 0.0
+    if modo == "Team" and tipo != "VACIO":
+        bono_isr *= 2
+        bono = bono_isr
+    else:
+        bono = bono_isr
+
+    # Cálculo de utilidad
+    clasificacion = ruta.get("Clasificación Ruta", "RL")
     ingreso_total = safe_number(ruta["Ingreso Total"])
     costo_total = safe_number(ruta["Costo_Total_Ruta"])
     utilidad_bruta = ingreso_total - costo_total
+    costos_indirectos = ingreso_total * 0.35
+    utilidad_neta = utilidad_bruta - costos_indirectos
 
     porcentaje_bruta = (utilidad_bruta / ingreso_total * 100) if ingreso_total > 0 else 0
+    porcentaje_neta = (utilidad_neta / ingreso_total * 100) if ingreso_total > 0 else 0
 
     def colored_bold(label, value, condition):
         color = "green" if condition else "red"
@@ -51,6 +67,9 @@ if os.path.exists(RUTA_RUTAS):
     st.write(f"**Costo Total:** ${costo_total:,.2f}")
     st.markdown(colored_bold("Utilidad Bruta", f"${utilidad_bruta:,.2f}", utilidad_bruta >= 0), unsafe_allow_html=True)
     st.markdown(colored_bold("% Utilidad Bruta", f"{porcentaje_bruta:.2f}%", porcentaje_bruta >= 50), unsafe_allow_html=True)
+    st.write(f"**Costos Indirectos (35%):** ${costos_indirectos:,.2f}")
+    st.markdown(colored_bold("Utilidad Neta", f"${utilidad_neta:,.2f}", utilidad_neta >= 0), unsafe_allow_html=True)
+    st.markdown(colored_bold("% Utilidad Neta", f"{porcentaje_neta:.2f}%", porcentaje_neta >= 15), unsafe_allow_html=True)
 
     # =====================
     # 📋 Detalles y Costos
@@ -90,8 +109,8 @@ if os.path.exists(RUTA_RUTAS):
 
     detalles = [
         f"Fecha: {ruta['Fecha']}",
-        f"Tipo: {ruta['Tipo']}",
-        f"Modo de viaje: {modo_viaje}",
+        f"Tipo: {tipo}",
+        f"Modo de viaje: {modo}",
         f"Cliente: {ruta['Cliente']}",
         f"Origen → Destino: {ruta['Origen']} → {ruta['Destino']}",
         f"KM: {km:,.2f}",
@@ -106,12 +125,11 @@ if os.path.exists(RUTA_RUTAS):
         f"Moneda Costo Cruce: {ruta['Moneda Costo Cruce']}",
         f"Costo Cruce Original: ${safe_number(ruta['Costo Cruce']):,.2f}",
         f"Costo Cruce Convertido: ${safe_number(ruta['Costo Cruce Convertido']):,.2f}",
-        f"Diesel Camión: ${costo_diesel:,.2f}",
-        f"Sueldo Operador: ${sueldo:,.2f}",
-        f"Bono ISR/IMSS: ${bono:,.2f}",
-        f"Bono Rendimiento: ${bono_rendimiento:,.2f}",
+        f"Diesel Camion: ${safe_number(ruta['Costo_Diesel_Camion']):,.2f}",
+        f"Sueldo Operador: ${safe_number(ruta['Sueldo_Operador']):,.2f}",
+        f"Bono: ${bono:,.2f}",
+        f"Bono Rendimiento: ${bono_rend:,.2f}",
         f"Casetas: ${safe_number(ruta['Casetas']):,.2f}",
-        f"**Costo Extras:** ${costo_extras:,.2f}",
         "---",
         "**🧾 Desglose Extras:**",
         f"- Movimiento Local: ${safe_number(ruta['Movimiento_Local']):,.2f}",
