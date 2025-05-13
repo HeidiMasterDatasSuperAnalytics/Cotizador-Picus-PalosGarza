@@ -59,6 +59,11 @@ def calcular_costos(tramo, valores):
         "Costo_Total_Ruta": total
     }
 
+def asegurar_utilidad(df):
+    if "% Utilidad" not in df.columns:
+        df["Utilidad"] = df["Ingreso Total"] - df["Costo_Total_Ruta"]
+        df["% Utilidad"] = (df["Utilidad"] / df["Ingreso Total"] * 100).round(2)
+    return df
 
 st.title("🚚 Programación de Viajes Detallada")
 valores = cargar_datos_generales()
@@ -212,6 +217,8 @@ if not pendientes.empty:
         for _, vacio in vacios.iterrows():
             origen_expo = vacio["Destino"]
             expo = df_rutas[(df_rutas["Tipo"] == tipo_regreso) & (df_rutas["Origen"] == origen_expo)]
+            expo = asegurar_utilidad(expo)
+            expo = expo.sort_values(by="% Utilidad", ascending=False).iloc[0]
             if not expo.empty:
                 expo = expo.sort_values(by="% Utilidad", ascending=False).iloc[0]
                 total_ingreso = sum(safe(x) for x in [ida["Ingreso Total"], vacio["Ingreso Total"], expo["Ingreso Total"]])
