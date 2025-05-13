@@ -134,28 +134,23 @@ st.header("🛠️ Gestión de Tráficos Programados")
 
 if os.path.exists(RUTA_PROG):
     df_prog = pd.read_csv(RUTA_PROG)
+    
+    # Filtrar únicamente tráficos incompletos (solo IDA)
     incompletos = df_prog.groupby("ID_Programacion").size().reset_index(name="Tramos")
     incompletos = incompletos[incompletos["Tramos"] == 1]["ID_Programacion"]
     ids = incompletos.tolist()
-    id_edit = st.selectbox("Selecciona un tráfico para editar", ids)
-    df_filtrado = df_prog[df_prog["ID_Programacion"] == id_edit].reset_index()
-    st.dataframe(df_filtrado)
 
-    df_filtrado = df_prog[df_prog["ID_Programacion"] == id_edit].reset_index()
-    st.write("**Vista previa del tráfico seleccionado:**")
-    st.dataframe(df_filtrado)
+    if ids:
+        id_edit = st.selectbox("Selecciona un tráfico para editar", ids)
+        df_filtrado = df_prog[df_prog["ID_Programacion"] == id_edit].reset_index()
+        st.write("**Vista previa del tráfico seleccionado:**")
+        st.dataframe(df_filtrado)
 
-    if not df_filtrado[df_filtrado["Tramo"] == "IDA"].empty:
-        tramo_ida = df_filtrado[df_filtrado["Tramo"] == "IDA"].iloc[0]
-        with st.form("editar_trafico"):
-        # resto del código...
-    else:
-        st.info("Este tráfico ya fue concluido y no se puede editar.")
-
-    tramo_ida = df_filtrado[df_filtrado["Tramo"] == "IDA"].iloc[0]
-    with st.form("editar_trafico"):
-        nueva_unidad = st.text_input("Unidad", value=tramo_ida["Unidad"])
-        nuevo_operador = st.text_input("Operador", value=tramo_ida["Operador"])
+        if not df_filtrado[df_filtrado["Tramo"] == "IDA"].empty:
+            tramo_ida = df_filtrado[df_filtrado["Tramo"] == "IDA"].iloc[0]
+            with st.form("editar_trafico"):
+                nueva_unidad = st.text_input("Unidad", value=tramo_ida["Unidad"])
+                nuevo_operador = st.text_input("Operador", value=tramo_ida["Operador"])
 
         col1, col2 = st.columns(2)
         with col1:
