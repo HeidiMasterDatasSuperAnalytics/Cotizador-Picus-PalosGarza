@@ -82,7 +82,7 @@ if os.path.exists(RUTA_RUTAS):
     pago_km = valores.get("Pago x KM (General)", 1.50)
 
     km = safe_number(ruta["KM"])
-    if modo_viaje == "Team":
+    if modo == "Team":
         sueldo = 1300
         bono = bono_isr * 2
     else:
