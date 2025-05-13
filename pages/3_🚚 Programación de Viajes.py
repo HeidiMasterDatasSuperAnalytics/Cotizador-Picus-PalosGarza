@@ -143,8 +143,8 @@ if os.path.exists(RUTA_PROG):
             puntualidad = st.number_input("Puntualidad", min_value=0.0, value=safe(tramo_ida.get("Puntualidad", 0)))
             pension = st.number_input("Pensión", min_value=0.0, value=safe(tramo_ida.get("Pension", 0)))
             estancia = st.number_input("Estancia", min_value=0.0, value=safe(tramo_ida.get("Estancia", 0)))
-        with col2:
             pistas_extra = st.number_input("Pistas Extra", min_value=0.0, value=safe(tramo_ida.get("Pistas Extra", 0)))
+        with col2:
             stop = st.number_input("Stop", min_value=0.0, value=safe(tramo_ida.get("Stop", 0)))
             falso = st.number_input("Falso", min_value=0.0, value=safe(tramo_ida.get("Falso", 0)))
             gatas = st.number_input("Gatas", min_value=0.0, value=safe(tramo_ida.get("Gatas", 0)))
