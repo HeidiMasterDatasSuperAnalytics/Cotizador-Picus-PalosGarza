@@ -60,21 +60,21 @@ if os.path.exists(RUTA_RUTAS):
                 ingreso_cruce = st.number_input("Ingreso Cruce Original", min_value=0.0, value=float(ruta.get("Cruce_Original", 0.0)))
                 moneda_costo_cruce = st.selectbox("Moneda Costo Cruce", ["MXN", "USD"], index=["MXN", "USD"].index(ruta.get("Moneda Costo Cruce", "MXN")))
                 costo_cruce = st.number_input("Costo Cruce", min_value=0.0, value=float(ruta.get("Costo Cruce", 0.0)))
+                movimiento_local = st.number_input("Movimiento Local", min_value=0.0, value=float(ruta.get("Movimiento_Local", 0.0)))
+                puntualidad = st.number_input("Puntualidad", min_value=0.0, value=float(ruta.get("Puntualidad", 0.0)))
 
             st.markdown("### 🧾 Costos Extras")
             col3, col4 = st.columns(2)
             with col3:
-                movimiento_local = st.number_input("Movimiento Local", min_value=0.0, value=float(ruta.get("Movimiento_Local", 0.0)))
-                puntualidad = st.number_input("Puntualidad", min_value=0.0, value=float(ruta.get("Puntualidad", 0.0)))
-                pension = st.number_input("Pensión", min_value=0.0, value=float(ruta.get("Pension", 0.0)))
                 pistas_extra = st.number_input("Pistas Extra", min_value=0.0, value=float(ruta.get("Pistas Extra", 0.0)))
-            with col4:
-                estancia = st.number_input("Estancia", min_value=0.0, value=float(ruta.get("Estancia", 0.0)))
                 stop = st.number_input("Stop", min_value=0.0, value=float(ruta.get("Stop", 0.0)))
                 falso = st.number_input("Falso", min_value=0.0, value=float(ruta.get("Falso", 0.0)))
+                pension = st.number_input("Pensión", min_value=0.0, value=float(ruta.get("Pension", 0.0)))
+            with col4:
                 gatas = st.number_input("Gatas", min_value=0.0, value=float(ruta.get("Gatas", 0.0)))
                 accesorios = st.number_input("Accesorios", min_value=0.0, value=float(ruta.get("Accesorios", 0.0)))
                 guias = st.number_input("Guías", min_value=0.0, value=float(ruta.get("Guías", 0.0)))
+                estancia = st.number_input("Estancia", min_value=0.0, value=float(ruta.get("Estancia", 0.0)))
 
             guardar = st.form_submit_button("📅 Guardar cambios")
 
