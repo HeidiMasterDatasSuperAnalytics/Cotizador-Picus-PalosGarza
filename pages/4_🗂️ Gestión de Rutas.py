@@ -95,19 +95,15 @@ if os.path.exists(RUTA_RUTAS):
                 costo_diesel_camion = (km / rendimiento_camion) * costo_diesel
 
                 pago_km = valores.get("Pago x KM (General)", 1.50)
-                bono_isr = valores.get("Bono ISR IMSS", 462.66)
-                bono_rendimiento = valores.get("Bono Rendimiento", 250.0)
+                bono_isr = valores.get("Bono ISR IMSS", 462.66) if tipo != "VACIO" else 0.0
+                bono_rendimiento = valores.get("Bono Rendimiento", 250.0) if tipo != "VACIO" else 0.0
 
                 if modo_viaje == "Team":
                     sueldo = 1300
                     bono = bono_isr * 2
                 else:
-                    if tipo == "VACIO":
-                        sueldo = 100 if km < 100 else km * pago_km
-                        bono = 0
-                    else:
-                        sueldo = km * pago_km
-                        bono = bono_isr
+                    sueldo = 100 if tipo == "VACIO" and km < 100 else km * pago_km
+                    bono = 0 if tipo == "VACIO" else bono_isr
 
                 extras = sum(map(safe_number, [
                     movimiento_local, puntualidad, pension, estancia,
