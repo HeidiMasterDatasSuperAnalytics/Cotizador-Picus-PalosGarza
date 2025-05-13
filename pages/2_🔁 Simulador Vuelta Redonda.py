@@ -1,120 +1,149 @@
-
-# Simulador de Vuelta Redonda (Formato Igloo, Cálculos PICUS)
-# ------------------------------------------------------------
-# - Diseño por pasos visual como Igloo
-# - Tabla resumen de rutas seleccionadas
-# - Sueldo y bono ISR correctos por modo de viaje
-# - Bono rendimiento incluido
-# - Costos extras aplicados
-# - Costos indirectos como 35% del ingreso total
-
 import streamlit as st
 import pandas as pd
 import os
+from datetime import datetime
 
 RUTA_RUTAS = "rutas_guardadas.csv"
 RUTA_DATOS = "datos_generales.csv"
 
-def safe(x): return 0 if pd.isna(x) or x is None else x
+st.title("🔁 Simulador de Vuelta Redonda - PICUS")
+
+def safe(x):
+    return 0 if pd.isna(x) or x is None else x
 
 def cargar_datos_generales():
     if os.path.exists(RUTA_DATOS):
         return pd.read_csv(RUTA_DATOS).set_index("Parametro").to_dict()["Valor"]
-    return {
-        "Rendimiento Camion": 2.5,
-        "Costo Diesel": 24.0,
-        "Pago x KM (General)": 1.50,
-        "Bono ISR IMSS": 462.66,
-        "Bono Rendimiento": 250.0,
-    }
+    return {}
 
-def calcular_costos(tramo, valores):
-    km = safe(tramo.get("KM", 0))
-    modo = tramo.get("Modo_Viaje", "Operador")
-    tipo = tramo.get("Tipo", "IMPO")
-    casetas = safe(tramo.get("Casetas", 0))
-    bono_rend = float(valores["Bono Rendimiento"])
-    pago_km = float(valores["Pago x KM (General)"])
-    bono_isr = float(valores["Bono ISR IMSS"])
-    diesel = (km / float(valores["Rendimiento Camion"])) * float(valores["Costo Diesel"])
-
-    extras = sum([safe(tramo.get(x, 0)) for x in [
-        "Movimiento_Local", "Puntualidad", "Pension", "Estancia", "Pistas Extra", 
-        "Stop", "Falso", "Gatas", "Accesorios", "Guías"
-    ]])
-
-    if modo == "Team":
-        sueldo = 1300
-        bono = bono_isr * 2
-    else:
-        sueldo = 100 if tipo == "VACIO" and km < 100 else km * pago_km
-        bono = 0 if tipo == "VACIO" else bono_isr
-
-    costo_cruce = safe(tramo.get("Costo Cruce Convertido", 0))
-    total = sueldo + bono + bono_rend + diesel + casetas + extras + costo_cruce
-
-    return total
+def cargar_rutas():
+    if os.path.exists(RUTA_RUTAS):
+        df = pd.read_csv(RUTA_RUTAS)
+        df["Ruta"] = df["Origen"] + " → " + df["Destino"]
+        df["Utilidad"] = df["Ingreso Total"] - df["Costo_Total_Ruta"]
+        df["% Utilidad"] = (df["Utilidad"] / df["Ingreso Total"] * 100).round(2)
+        return df
+    st.error("❌ No se encontró rutas_guardadas.csv")
+    st.stop()
 
 valores = cargar_datos_generales()
-st.title("🔁 Simulador de Vuelta Redonda")
+df_rutas = cargar_rutas()
 
-if os.path.exists(RUTA_RUTAS):
-    df = pd.read_csv(RUTA_RUTAS)
-    impo, expo, vacio = df[df["Tipo"]=="IMPO"], df[df["Tipo"]=="EXPO"], df[df["Tipo"]=="VACIO"]
+st.subheader("📌 Paso 1: Selecciona tipo de ruta principal")
+tipo_principal = st.selectbox("Tipo de ruta inicial", ["IMPO", "EXPO", "VACIO"])
+rutas_principales = df_rutas[df_rutas["Tipo"] == tipo_principal].copy()
 
-    tipo_principal = st.selectbox("Tipo de ruta principal", ["IMPO", "EXPO"])
-    grupo = impo if tipo_principal == "IMPO" else expo
-    rutas_opciones = grupo[["Origen", "Destino"]].drop_duplicates().itertuples(index=False, name=None)
-    seleccion = st.selectbox("Ruta principal", list(rutas_opciones), format_func=lambda x: f"{x[0]} → {x[1]}")
-    origen, destino = seleccion
-    candidatas = grupo[(grupo["Origen"] == origen) & (grupo["Destino"] == destino)].copy()
+if rutas_principales.empty:
+    st.warning(f"No hay rutas tipo {tipo_principal} registradas.")
+    st.stop()
 
-    candidatas["Utilidad"] = candidatas["Ingreso Total"] - candidatas["Costo_Total_Ruta"]
-    candidatas["% Utilidad"] = (candidatas["Utilidad"] / candidatas["Ingreso Total"] * 100).round(2)
-    candidatas = candidatas.sort_values(by="% Utilidad", ascending=False)
-    sel_idx = st.selectbox("Cliente principal", candidatas.index,
-                           format_func=lambda x: f"{candidatas.loc[x, 'Cliente']} ({candidatas.loc[x, '% Utilidad']:.2f}%)")
-    ruta_principal = candidatas.loc[sel_idx]
-    rutas = [ruta_principal]
+ruta_sel = st.selectbox("Selecciona una ruta", rutas_principales["Ruta"].unique())
+rutas_filtradas = rutas_principales[rutas_principales["Ruta"] == ruta_sel].copy()
+rutas_filtradas = rutas_filtradas.sort_values(by="% Utilidad", ascending=False)
 
-    # Vacío sugerido
-    vacios = vacio[vacio["Origen"] == destino].copy()
-    st.markdown("---")
-    if not vacios.empty:
-        st.subheader("Ruta VACÍA sugerida (opcional)")
-        vacio_idx = st.selectbox("Ruta VACÍA", vacios.index,
-                                 format_func=lambda x: f"{vacios.loc[x, 'Origen']} → {vacios.loc[x, 'Destino']}")
-        ruta_vacio = vacios.loc[vacio_idx]
-        rutas.append(ruta_vacio)
-        destino = ruta_vacio["Destino"]
+cliente_idx = st.selectbox("Cliente (ordenado por % utilidad)", rutas_filtradas.index,
+    format_func=lambda x: f"{rutas_filtradas.loc[x, 'Cliente']} ({rutas_filtradas.loc[x, '% Utilidad']:.2f}%)")
+ruta1 = rutas_filtradas.loc[cliente_idx]
 
-    # Secundaria sugerida
-    st.markdown("---")
-    tipo_sec = "EXPO" if tipo_principal == "IMPO" else "IMPO"
-    candidatos = (expo if tipo_principal == "IMPO" else impo)
-    sugeridas = candidatos[candidatos["Origen"] == destino].copy()
-    if not sugeridas.empty:
-        sugeridas["Utilidad"] = sugeridas["Ingreso Total"] - sugeridas["Costo_Total_Ruta"]
-        sugeridas["% Utilidad"] = (sugeridas["Utilidad"] / sugeridas["Ingreso Total"] * 100).round(2)
-        sugeridas = sugeridas.sort_values(by="% Utilidad", ascending=False)
-        idx = st.selectbox("Ruta secundaria sugerida", sugeridas.index,
-                           format_func=lambda x: f"{sugeridas.loc[x, 'Cliente']} - {sugeridas.loc[x, 'Origen']} → {sugeridas.loc[x, 'Destino']} ({sugeridas.loc[x, '% Utilidad']:.2f}%)")
-        ruta_sec = sugeridas.loc[idx]
-        rutas.append(ruta_sec)
+st.subheader("📌 Paso 2: Ruta intermedia sugerida (opcional)")
+destino1 = ruta1["Destino"]
+vacios = df_rutas[(df_rutas["Tipo"] == "VACIO") & (df_rutas["Origen"] == destino1)].copy()
 
-    if st.button("🚛 Simular Vuelta Redonda"):
-        ingreso_total = sum(safe(r.get("Ingreso Total", 0)) for r in rutas)
-        costo_total = sum(calcular_costos(r, valores) for r in rutas)
-        utilidad_bruta = ingreso_total - costo_total
-        costo_indirecto = ingreso_total * 0.35
-        utilidad_neta = utilidad_bruta - costo_indirecto
+opcion_intermedia = None
+if not vacios.empty:
+    vacios = vacios.sort_values(by="% Utilidad", ascending=False)
+    idx = st.selectbox("Ruta vacía sugerida", vacios.index,
+        format_func=lambda x: f"{vacios.loc[x, 'Ruta']} ({vacios.loc[x, 'Cliente']})")
+    opcion_intermedia = vacios.loc[idx]
 
-        st.markdown("---")
-        st.subheader("📊 Resultado de Simulación")
-        st.metric("Ingreso Total", f"${ingreso_total:,.2f}")
-        st.metric("Costo Total", f"${costo_total:,.2f}")
-        st.metric("Utilidad Bruta", f"${utilidad_bruta:,.2f}")
-        st.metric("Costo Indirecto (35%)", f"${costo_indirecto:,.2f}")
-        st.metric("Utilidad Neta", f"${utilidad_neta:,.2f}")
+st.subheader("📌 Paso 3: Ruta final sugerida")
+origen_final = opcion_intermedia["Destino"] if opcion_intermedia is not None else ruta1["Destino"]
+
+if tipo_principal == "IMPO":
+    tipo_final = "EXPO"
+elif tipo_principal == "EXPO":
+    tipo_final = "IMPO"
 else:
-    st.warning("⚠️ No hay rutas cargadas.")
+    tipo_final = "EXPO"
+
+rutas_finales = df_rutas[(df_rutas["Tipo"] == tipo_final) & (df_rutas["Origen"] == origen_final)].copy()
+ruta3 = None
+if not rutas_finales.empty:
+    rutas_finales = rutas_finales.sort_values(by="% Utilidad", ascending=False)
+    idx = st.selectbox("Ruta final sugerida", rutas_finales.index,
+        format_func=lambda x: f"{rutas_finales.loc[x, 'Cliente']} - {rutas_finales.loc[x, 'Ruta']}")
+    ruta3 = rutas_finales.loc[idx]
+
+rutas_seleccionadas = [ruta1]
+if opcion_intermedia is not None:
+    rutas_seleccionadas.append(opcion_intermedia)
+if ruta3 is not None:
+    rutas_seleccionadas.append(ruta3)
+
+st.header("🛤️ Rutas Seleccionadas")
+for r in rutas_seleccionadas:
+    st.markdown(f"**{r['Tipo']}** | {r['Origen']} → {r['Destino']} | Cliente: {r['Cliente']}")
+
+modo = st.radio("Modo de viaje", ["Operador", "Team"], horizontal=True)
+
+# =====================
+# Cálculos por ruta
+# =====================
+detalle = []
+ingreso_total = 0
+costo_total = 0
+
+for r in rutas_seleccionadas:
+    ingreso = safe(r["Ingreso Total"])
+    costo = safe(r["Costo_Total_Ruta"])
+    bono = float(valores.get("Bono ISR", 0))
+    if modo == "Team":
+        bono *= 2
+
+    km = safe(r["KM"])
+    tipo = r["Tipo"]
+    if modo == "Team":
+        sueldo = 650 * 2
+    else:
+        if tipo == "VACIO":
+            sueldo = 100 if km < 100 else km * float(valores.get("Pago por km VACIO", 1.25))
+        elif tipo == "IMPO":
+            sueldo = km * float(valores.get("Pago por km IMPO", 1.25))
+        elif tipo == "EXPO":
+            sueldo = km * float(valores.get("Pago por km EXPO", 1.63))
+        else:
+            sueldo = 0
+
+    extras = sum(safe(r.get(campo, 0)) for campo in ["Pistas Extra", "Stop", "Falso", "Gatas", "Accesorios", "Guías"])
+    rendimiento = safe(valores.get("Bono Rendimiento", 0))
+
+    total_costos = costo + sueldo + bono + extras + rendimiento
+    ingreso_total += ingreso
+    costo_total += total_costos
+
+    detalle.append({
+        "Tipo": tipo,
+        "Cliente": r["Cliente"],
+        "Ruta": r["Origen"] + " → " + r["Destino"],
+        "Ingreso": ingreso,
+        "Costo Base": costo,
+        "Sueldo": sueldo,
+        "Bono": bono,
+        "Extras": extras,
+        "Rendimiento": rendimiento,
+        "Total Ruta": total_costos
+    })
+
+utilidad_bruta = ingreso_total - costo_total
+costos_indirectos = ingreso_total * 0.35
+utilidad_neta = utilidad_bruta - costos_indirectos
+
+st.header("📊 Resultados Generales")
+st.metric("Ingreso Total", f"${ingreso_total:,.2f}")
+st.metric("Costo Total", f"${costo_total:,.2f}")
+st.metric("Utilidad Bruta", f"${utilidad_bruta:,.2f} ({(utilidad_bruta/ingreso_total*100):.2f}%)")
+st.metric("Costos Indirectos (35%)", f"${costos_indirectos:,.2f}")
+st.metric("Utilidad Neta", f"${utilidad_neta:,.2f} ({(utilidad_neta/ingreso_total*100):.2f}%)")
+
+st.subheader("📋 Detalle por Ruta")
+st.dataframe(pd.DataFrame(detalle), use_container_width=True)
