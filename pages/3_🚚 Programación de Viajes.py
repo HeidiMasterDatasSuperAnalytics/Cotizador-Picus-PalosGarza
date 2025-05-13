@@ -287,8 +287,11 @@ if os.path.exists(RUTA_PROG):
     if not df_concluidos.empty:
         df_concluidos["Fecha"] = pd.to_datetime(df_concluidos["Fecha"])
         st.markdown("### 📅 Filtro por Fecha")
-        fecha_inicio = st.date_input("Fecha inicio", value=df_concluidos["Fecha"].min().date())
-        fecha_fin = st.date_input("Fecha fin", value=df_concluidos["Fecha"].max().date())
+        col1, col2 = st.columns(2)
+        with col1:
+            fecha_inicio = st.date_input("Fecha inicio", value=df_concluidos["Fecha"].min().date())
+        with col2:
+            fecha_fin = st.date_input("Fecha fin", value=df_concluidos["Fecha"].max().date())
 
         filtro = (df_concluidos["Fecha"] >= pd.to_datetime(fecha_inicio)) & (df_concluidos["Fecha"] <= pd.to_datetime(fecha_fin))
         df_filtrado = df_concluidos[filtro]
