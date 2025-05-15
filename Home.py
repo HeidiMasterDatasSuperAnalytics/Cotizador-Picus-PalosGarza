@@ -32,7 +32,6 @@ st.markdown("""
 - **🔁 Simulador Vuelta Redonda:** Combinaciones IMPO + VACIO + EXPO
 - **🚚 Programación de Viajes:** Registro y simulación de tráficos ida y vuelta
 - **🗂️ Gestión de Rutas:** Editar y eliminar rutas existentes
-- **⚙️ Costos Indirectos:** Configurar costos indirectos RL/RC
 - **📂 Archivos:** Descargar / cargar respaldos de datos
 """)
 
