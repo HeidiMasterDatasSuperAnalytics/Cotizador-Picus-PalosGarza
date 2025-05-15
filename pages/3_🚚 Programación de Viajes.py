@@ -86,7 +86,6 @@ st.header("🛠️ Gestión de Tráficos Programados")
 
 if os.path.exists(RUTA_PROG):
     df_prog = pd.read_csv(RUTA_PROG)
-    df_prog = df_prog[df_prog.get("Clasificacion Ruta", "RL") == "RL"]
 
     incompletos = df_prog.groupby("ID_Programacion").size().reset_index(name="Tramos")
     incompletos = incompletos[incompletos["Tramos"] == 1]["ID_Programacion"]
