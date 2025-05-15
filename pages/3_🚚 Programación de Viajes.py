@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import os
@@ -9,66 +8,25 @@ RUTA_RUTAS = "rutas_guardadas.csv"
 RUTA_PROG = "viajes_programados.csv"
 RUTA_DATOS = "datos_generales.csv"
 
+SUELDO_TEAM = 1300
+BONO_ISR = 462.66
+BONO_RENDIMIENTO = 250.0
+PAGO_KM = 1.50
+
+st.title("🚚 Programación de Viajes - PICUS RL")
+
 def safe(x): return 0 if pd.isna(x) or x is None else x
 
-def cargar_datos_generales():
-    if os.path.exists(RUTA_DATOS):
-        return pd.read_csv(RUTA_DATOS).set_index("Parametro").to_dict()["Valor"]
-    else:
-        return {
-            "Rendimiento Camion": 2.5,
-            "Costo Diesel": 24.0,
-            "Pago x KM (General)": 1.50,
-            "Bono ISR IMSS": 462.66,
-            "Bono Rendimiento": 250.0,
-            "Tipo de cambio USD": 17.5,
-            "Tipo de cambio MXN": 1.0
-        }
-
-def calcular_costos(tramo, valores):
-    km = safe(tramo.get("KM", 0))
-    modo = tramo.get("Modo_Viaje", "Operador")
-    tipo = tramo.get("Tipo", "IMPO")
-    casetas = safe(tramo.get("Casetas", 0))
-    pago_km = float(valores.get("Pago x KM (General)", 1.50))
-    diesel = (km / float(valores["Rendimiento Camion"])) * float(valores["Costo Diesel"])
-
-    extras = sum([safe(tramo.get(x, 0)) for x in [
-        "Movimiento_Local", "Puntualidad", "Pension", "Estancia", "Pistas Extra", 
-        "Stop", "Falso", "Gatas", "Accesorios", "Guías"
-    ]])
-
-    # Bonos solo si no es VACIO
-    bono_isr = float(valores.get("Bono ISR IMSS", 462.66)) if tipo != "VACIO" else 0.0
-    bono_rend = float(valores.get("Bono Rendimiento", 250.0)) if tipo != "VACIO" else 0.0
-
-    if modo == "Team":
-        sueldo = 1300
-        bono = bono_isr * 2
-    else:
-        sueldo = 100 if tipo == "VACIO" and km < 100 else km * pago_km
-        bono = 0 if tipo == "VACIO" else bono_isr
-
-    costo_cruce = safe(tramo.get("Costo Cruce Convertido", 0))
-    total = sueldo + bono + bono_rend + diesel + casetas + extras + costo_cruce
-
-    return {
-        "Sueldo_Operador": sueldo,
-        "Bono": bono,
-        "Bono Rendimiento": bono_rend,
-        "Costo_Extras": extras,
-        "Costo_Diesel_Camion": diesel,
-        "Costo_Total_Ruta": total
-    }
-
-def asegurar_utilidad(df):
-    if "% Utilidad" not in df.columns:
-        df["Utilidad"] = df["Ingreso Total"] - df["Costo_Total_Ruta"]
-        df["% Utilidad"] = (df["Utilidad"] / df["Ingreso Total"] * 100).round(2)
+def cargar_rutas():
+    if not os.path.exists(RUTA_RUTAS):
+        st.error("❌ No se encontró rutas_guardadas.csv")
+        st.stop()
+    df = pd.read_csv(RUTA_RUTAS)
+    df = df[df["Clasificacion Ruta"] == "RL"]
+    df["Utilidad"] = df["Ingreso Total"] - df["Costo_Total_Ruta"]
+    df["% Utilidad"] = (df["Utilidad"] / df["Ingreso Total"] * 100).round(2)
+    df["Ruta"] = df["Origen"] + " → " + df["Destino"]
     return df
-
-st.title("🚚 Programación de Viajes Detallada")
-valores = cargar_datos_generales()
 
 def guardar_programacion(df_nueva):
     if os.path.exists(RUTA_PROG):
@@ -78,18 +36,10 @@ def guardar_programacion(df_nueva):
         df_total = df_nueva
     df_total.to_csv(RUTA_PROG, index=False)
 
-def cargar_rutas():
-    if not os.path.exists(RUTA_RUTAS):
-        st.error("❌ No se encontró rutas_guardadas.csv")
-        st.stop()
-    df = pd.read_csv(RUTA_RUTAS)
-    df["Utilidad"] = df["Ingreso Total"] - df["Costo_Total_Ruta"]
-    df["% Utilidad"] = (df["Utilidad"] / df["Ingreso Total"] * 100).round(2)
-    df["Ruta"] = df["Origen"] + " → " + df["Destino"]
-    return df
-
-# Registro de tráfico
-st.header("🚛 Registro de Tráfico - Persona 1")
+# ==============================
+# Bloque 1: Registro de tráfico
+# ==============================
+st.header("🚛 Registro de Tráfico")
 rutas_df = cargar_rutas()
 tipo = st.selectbox("Tipo de ruta (ida)", ["IMPO", "EXPO"])
 rutas_tipo = rutas_df[rutas_df["Tipo"] == tipo].copy()
@@ -110,6 +60,7 @@ with st.form("registro_trafico"):
     trafico = st.text_input("Número de Tráfico")
     unidad = st.text_input("Unidad")
     operador = st.text_input("Operador")
+    modo_viaje = st.selectbox("Modo de viaje", ["Operador", "Team"])
     submit = st.form_submit_button("📅 Registrar Tráfico")
 
     if submit:
@@ -122,20 +73,22 @@ with st.form("registro_trafico"):
             datos["Número_Trafico"] = trafico
             datos["Unidad"] = unidad
             datos["Operador"] = operador
+            datos["Modo_Viaje"] = modo_viaje
             datos["Tramo"] = "IDA"
             datos["ID_Programacion"] = f"{trafico}_{fecha_str}"
             guardar_programacion(pd.DataFrame([datos]))
             st.success("✅ Tráfico registrado exitosamente.")
 
-
-# Gestión y edición de tráfico
+# ==========================
+# Bloque 2: Gestión y edición de tráfico
+# ==========================
 st.markdown("---")
 st.header("🛠️ Gestión de Tráficos Programados")
 
 if os.path.exists(RUTA_PROG):
     df_prog = pd.read_csv(RUTA_PROG)
-    
-    # Filtrar únicamente tráficos incompletos (solo IDA)
+    df_prog = df_prog[df_prog.get("Clasificacion Ruta", "RL") == "RL"]
+
     incompletos = df_prog.groupby("ID_Programacion").size().reset_index(name="Tramos")
     incompletos = incompletos[incompletos["Tramos"] == 1]["ID_Programacion"]
     ids = incompletos.tolist()
@@ -152,154 +105,187 @@ if os.path.exists(RUTA_PROG):
                 nueva_unidad = st.text_input("Unidad", value=tramo_ida["Unidad"])
                 nuevo_operador = st.text_input("Operador", value=tramo_ida["Operador"])
 
-        col1, col2 = st.columns(2)
-        with col1:
-            movimiento_local = st.number_input("Movimiento Local", min_value=0.0, value=safe(tramo_ida.get("Movimiento_Local", 0)))
-            puntualidad = st.number_input("Puntualidad", min_value=0.0, value=safe(tramo_ida.get("Puntualidad", 0)))
-            pension = st.number_input("Pensión", min_value=0.0, value=safe(tramo_ida.get("Pension", 0)))
-            estancia = st.number_input("Estancia", min_value=0.0, value=safe(tramo_ida.get("Estancia", 0)))
-            pistas_extra = st.number_input("Pistas Extra", min_value=0.0, value=safe(tramo_ida.get("Pistas Extra", 0)))
-        with col2:
-            stop = st.number_input("Stop", min_value=0.0, value=safe(tramo_ida.get("Stop", 0)))
-            falso = st.number_input("Falso", min_value=0.0, value=safe(tramo_ida.get("Falso", 0)))
-            gatas = st.number_input("Gatas", min_value=0.0, value=safe(tramo_ida.get("Gatas", 0)))
-            accesorios = st.number_input("Accesorios", min_value=0.0, value=safe(tramo_ida.get("Accesorios", 0)))
-            guias = st.number_input("Guías", min_value=0.0, value=safe(tramo_ida.get("Guías", 0)))
+                col1, col2 = st.columns(2)
+                with col1:
+                    movimiento_local = st.number_input("Movimiento Local", min_value=0.0, value=safe(tramo_ida.get("Movimiento_Local", 0)))
+                    puntualidad = st.number_input("Puntualidad", min_value=0.0, value=safe(tramo_ida.get("Puntualidad", 0)))
+                    pension = st.number_input("Pensión", min_value=0.0, value=safe(tramo_ida.get("Pension", 0)))
+                    estancia = st.number_input("Estancia", min_value=0.0, value=safe(tramo_ida.get("Estancia", 0)))
+                    pistas_extra = st.number_input("Pistas Extra", min_value=0.0, value=safe(tramo_ida.get("Pistas Extra", 0)))
+                with col2:
+                    stop = st.number_input("Stop", min_value=0.0, value=safe(tramo_ida.get("Stop", 0)))
+                    falso = st.number_input("Falso", min_value=0.0, value=safe(tramo_ida.get("Falso", 0)))
+                    gatas = st.number_input("Gatas", min_value=0.0, value=safe(tramo_ida.get("Gatas", 0)))
+                    accesorios = st.number_input("Accesorios", min_value=0.0, value=safe(tramo_ida.get("Accesorios", 0)))
+                    guias = st.number_input("Guías", min_value=0.0, value=safe(tramo_ida.get("Guías", 0)))
+                actualizar = st.form_submit_button("💾 Guardar cambios")
 
-        actualizar = st.form_submit_button("💾 Guardar cambios")
-        if actualizar:
-            columnas = {
-                "Unidad": nueva_unidad,
-                "Operador": nuevo_operador,
-                "Movimiento_Local": movimiento_local,
-                "Puntualidad": puntualidad,
-                "Pension": pension,
-                "Estancia": estancia,
-                "Pistas Extra": pistas_extra,
-                "Stop": stop,
-                "Falso": falso,
-                "Gatas": gatas,
-                "Accesorios": accesorios,
-                "Guías": guias
-            }
+                if actualizar:
+                    columnas = {
+                        "Unidad": nueva_unidad,
+                        "Operador": nuevo_operador,
+                        "Movimiento_Local": movimiento_local,
+                        "Puntualidad": puntualidad,
+                        "Pension": pension,
+                        "Estancia": estancia,
+                        "Pistas Extra": pistas_extra,
+                        "Stop": stop,
+                        "Falso": falso,
+                        "Gatas": gatas,
+                        "Accesorios": accesorios,
+                        "Guías": guias
+                    }
+                    for col, val in columnas.items():
+                        df_prog.loc[(df_prog["ID_Programacion"] == id_edit) & (df_prog["Tramo"] == "IDA"), col] = val
 
-            for col, val in columnas.items():
-                df_prog.loc[(df_prog["ID_Programacion"] == id_edit) & (df_prog["Tramo"] == "IDA"), col] = val
+                    # Recalcular costo total
+                    extras = sum([safe(x) for x in columnas.values() if isinstance(x, (int, float))])
+                    base = tramo_ida.get("Costo_Total_Ruta", 0) - tramo_ida.get("Costo_Extras", 0)
+                    total = base + extras
+                    df_prog.loc[(df_prog["ID_Programacion"] == id_edit) & (df_prog["Tramo"] == "IDA"), "Costo_Extras"] = extras
+                    df_prog.loc[(df_prog["ID_Programacion"] == id_edit) & (df_prog["Tramo"] == "IDA"), "Costo_Total_Ruta"] = total
 
-            # Recalcular costos
-            tramo_actualizado = df_prog[(df_prog["ID_Programacion"] == id_edit) & (df_prog["Tramo"] == "IDA")].iloc[0]
-            nuevos_costos = calcular_costos(tramo_actualizado, valores)
-            for k, v in nuevos_costos.items():
-                df_prog.loc[(df_prog["ID_Programacion"] == id_edit) & (df_prog["Tramo"] == "IDA"), k] = v
+                    df_prog.to_csv(RUTA_PROG, index=False)
+                    st.success("✅ Cambios guardados correctamente.")
 
-            df_prog.to_csv(RUTA_PROG, index=False)
-            st.success("✅ Cambios guardados correctamente.")
-
-
-# Simulación de vuelta
+# ==============================
+# BLOQUE 3: SIMULAR Y CERRAR TRÁFICO DETALLADO
+# ==============================
 st.markdown("---")
-st.title("🔁 Simular y Cerrar Tráfico Detallado")
+st.title("🔁 Completar y Simular Tráfico Detallado")
+
+if not os.path.exists(RUTA_PROG) or not os.path.exists(RUTA_RUTAS):
+    st.error("❌ Faltan archivos necesarios para continuar.")
+    st.stop()
 
 df_prog = pd.read_csv(RUTA_PROG)
-df_rutas = pd.read_csv(RUTA_RUTAS)
+df_rutas = cargar_rutas()
 
-pendientes = df_prog.groupby("ID_Programacion").size().reset_index(name="count")
-pendientes = pendientes[pendientes["count"] == 1]["ID_Programacion"]
+incompletos = df_prog.groupby("ID_Programacion").size().reset_index(name="count")
+incompletos = incompletos[incompletos["count"] == 1]["ID_Programacion"]
 
-if not pendientes.empty:
-    id_sel = st.selectbox("Selecciona tráfico pendiente", pendientes)
+if not incompletos.empty:
+    id_sel = st.selectbox("Selecciona un tráfico pendiente", incompletos)
     ida = df_prog[df_prog["ID_Programacion"] == id_sel].iloc[0]
-    destino = ida["Destino"]
+    destino_ida = ida["Destino"]
     tipo_ida = ida["Tipo"]
-    tipo_regreso = "EXPO" if tipo_ida == "IMPO" else "IMPO"
 
-    directas = df_rutas[(df_rutas["Tipo"] == tipo_regreso) & (df_rutas["Origen"] == destino)].copy()
+    tipo_regreso = "EXPO" if tipo_ida == "IMPO" else "IMPO"
+    directas = df_rutas[(df_rutas["Tipo"] == tipo_regreso) & (df_rutas["Origen"] == destino_ida)].copy()
+
     if not directas.empty:
         directas = directas.sort_values(by="% Utilidad", ascending=False)
-        idx = st.selectbox("Cliente sugerido", directas.index,
+        idx = st.selectbox("Cliente sugerido (por utilidad)", directas.index,
             format_func=lambda x: f"{directas.loc[x, 'Cliente']} - {directas.loc[x, 'Ruta']} ({directas.loc[x, '% Utilidad']:.2f}%)")
         rutas = [ida, directas.loc[idx]]
     else:
-        vacios = df_rutas[(df_rutas["Tipo"] == "VACIO") & (df_rutas["Origen"] == destino)].copy()
-        mejor = None
-        mejor_utilidad = -99999
+        vacios = df_rutas[(df_rutas["Tipo"] == "VACIO") & (df_rutas["Origen"] == destino_ida)].copy()
+        mejor_combo = None
+        mejor_utilidad = -999999
 
         for _, vacio in vacios.iterrows():
             origen_expo = vacio["Destino"]
             expo = df_rutas[(df_rutas["Tipo"] == tipo_regreso) & (df_rutas["Origen"] == origen_expo)]
-            expo = asegurar_utilidad(expo)
             if not expo.empty:
                 expo = expo.sort_values(by="% Utilidad", ascending=False).iloc[0]
-                total_ingreso = sum(safe(x) for x in [ida["Ingreso Total"], vacio["Ingreso Total"], expo["Ingreso Total"]])
-                total_costo = sum(safe(x) for x in [ida["Costo_Total_Ruta"], vacio["Costo_Total_Ruta"], expo["Costo_Total_Ruta"]])
-                utilidad = total_ingreso - total_costo
+                ingreso_total = safe(ida["Ingreso Total"]) + safe(expo["Ingreso Total"])
+                costo_total = safe(ida["Costo_Total_Ruta"]) + safe(vacio["Costo_Total_Ruta"]) + safe(expo["Costo_Total_Ruta"])
+                utilidad = ingreso_total - costo_total
                 if utilidad > mejor_utilidad:
                     mejor_utilidad = utilidad
-                    mejor = (vacio, expo)
+                    mejor_combo = (vacio, expo)
 
-        if mejor:
-            rutas = [ida, mejor[0], mejor[1]]
+        if mejor_combo:
+            vacio, expo = mejor_combo
+            rutas = [ida, vacio, expo]
         else:
-            st.warning("No hay rutas de regreso disponibles.")
+            st.warning("No se encontraron rutas de regreso disponibles.")
             st.stop()
 
-    st.subheader("🧾 Tramos de este tráfico")
+    st.header("🚤 Resumen de Tramos Utilizados")
     for tramo in rutas:
-        st.write(f"{tramo['Tipo']} - {tramo['Origen']} → {tramo['Destino']} | Cliente: {tramo.get('Cliente', 'N/A')}")
+        st.markdown(f"**{tramo['Tipo']}** | {tramo['Origen']} → {tramo['Destino']} | Cliente: {tramo.get('Cliente', 'Sin cliente')}")
 
-    ingreso_total = sum(safe(t["Ingreso Total"]) for t in rutas)
-    costo_total = sum(safe(t["Costo_Total_Ruta"]) for t in rutas)
-    utilidad_bruta = ingreso_total - costo_total
-    costos_indirectos = ingreso_total * 0.35
-    utilidad_neta = utilidad_bruta - costos_indirectos
+    ingreso = sum(safe(r["Ingreso Total"]) for r in rutas)
+    costo = sum(safe(r["Costo_Total_Ruta"]) for r in rutas)
+    utilidad = ingreso - costo
+    indirectos = ingreso * 0.35
+    utilidad_neta = utilidad - indirectos
 
-    st.subheader("📊 Resultados")
-    st.metric("Ingreso Total", f"${ingreso_total:,.2f}")
-    st.metric("Costo Total", f"${costo_total:,.2f}")
-    st.metric("Utilidad Bruta", f"${utilidad_bruta:,.2f}")
-    st.metric("Costos Indirectos (35%)", f"${costos_indirectos:,.2f}")
-    st.metric("Utilidad Neta", f"${utilidad_neta:,.2f}")
+    st.header("📊 Ingresos y Utilidades")
+    st.metric("Ingreso Total", f"${ingreso:,.2f}")
+    st.metric("Costo Total", f"${costo:,.2f}")
+    st.metric("Utilidad Bruta", f"${utilidad:,.2f} ({(utilidad/ingreso*100):.2f}%)")
+    st.metric("Costos Indirectos (35%)", f"${indirectos:,.2f}")
+    st.metric("Utilidad Neta", f"${utilidad_neta:,.2f} ({(utilidad_neta/ingreso*100):.2f}%)")
 
-    if st.button("💾 Cerrar tráfico"):
-        nuevos = []
+    if st.button("📅 Guardar y cerrar tráfico"):
+        nuevos_tramos = []
         for tramo in rutas[1:]:
-            tramo["Fecha"] = ida["Fecha"]
-            tramo["Número_Trafico"] = ida["Número_Trafico"]
-            tramo["Unidad"] = ida["Unidad"]
-            tramo["Operador"] = ida["Operador"]
-            tramo["ID_Programacion"] = ida["ID_Programacion"]
-            tramo["Tramo"] = "VUELTA"
-            nuevos.append(tramo)
-        guardar_programacion(pd.DataFrame(nuevos))
+            datos = tramo.copy()
+            datos["Fecha"] = ida["Fecha"]
+            datos["Número_Trafico"] = ida["Número_Trafico"]
+            datos["Unidad"] = ida["Unidad"]
+            datos["Operador"] = ida["Operador"]
+            datos["ID_Programacion"] = ida["ID_Programacion"]
+            datos["Tramo"] = "VUELTA"
+            nuevos_tramos.append(datos)
+        guardar_programacion(pd.DataFrame(nuevos_tramos))
         st.success("✅ Tráfico cerrado exitosamente.")
+else:
+    st.info("No hay tráficos pendientes.")
 
-# Mostrar Tráficos Concluidos
+# ==============================
+# BLOQUE 4: Tráficos Concluidos con Filtro de Fechas
+# ==============================
 st.markdown("---")
-st.subheader("✅ Tráficos Concluidos")
+st.title("✅ Tráficos Concluidos con Filtro de Fechas")
 
-if os.path.exists(RUTA_PROG):
-    df_prog = pd.read_csv(RUTA_PROG)
-    concluidos = df_prog.groupby("ID_Programacion").size().reset_index(name="Tramos")
-    concluidos = concluidos[concluidos["Tramos"] >= 2]["ID_Programacion"]
+if not os.path.exists(RUTA_PROG):
+    st.error("❌ No se encontró el archivo de viajes programados.")
+    st.stop()
 
-    df_concluidos = df_prog[df_prog["ID_Programacion"].isin(concluidos)].copy()
+df = pd.read_csv(RUTA_PROG)
+programaciones = df.groupby("ID_Programacion").size().reset_index(name="Tramos")
+concluidos = programaciones[programaciones["Tramos"] >= 2]["ID_Programacion"]
 
-    if not df_concluidos.empty:
-        df_concluidos["Fecha"] = pd.to_datetime(df_concluidos["Fecha"])
-        st.markdown("### 📅 Filtro por Fecha")
-        col1, col2 = st.columns(2)
-        with col1:
-            fecha_inicio = st.date_input("Fecha inicio", value=df_concluidos["Fecha"].min().date())
-        with col2:
-            fecha_fin = st.date_input("Fecha fin", value=df_concluidos["Fecha"].max().date())
+if concluidos.empty:
+    st.info("Aún no hay tráficos concluidos.")
+else:
+    df_concluidos = df[df["ID_Programacion"].isin(concluidos)].copy()
+    df_concluidos["Fecha"] = pd.to_datetime(df_concluidos["Fecha"])
 
-        filtro = (df_concluidos["Fecha"] >= pd.to_datetime(fecha_inicio)) & (df_concluidos["Fecha"] <= pd.to_datetime(fecha_fin))
-        df_filtrado = df_concluidos[filtro]
+    st.subheader("📅 Filtro por Fecha")
+    col1, col2 = st.columns(2)
+    with col1:
+        fecha_inicio = st.date_input("Fecha inicio", value=df_concluidos["Fecha"].min().date())
+    with col2:
+        fecha_fin = st.date_input("Fecha fin", value=df_concluidos["Fecha"].max().date())
 
-        if not df_filtrado.empty:
-            st.dataframe(df_filtrado)
-        else:
-            st.warning("No hay tráficos concluidos en ese rango de fechas.")
+    filtro = (df_concluidos["Fecha"] >= pd.to_datetime(fecha_inicio)) & (df_concluidos["Fecha"] <= pd.to_datetime(fecha_fin))
+    df_filtrado = df_concluidos[filtro]
+
+    if df_filtrado.empty:
+        st.warning("No hay tráficos concluidos en ese rango de fechas.")
     else:
-        st.info("No hay tráficos concluidos todavía.")
+        resumen = df_filtrado.groupby(["ID_Programacion", "Número_Trafico", "Fecha"]).agg({
+            "Ingreso Total": "sum",
+            "Costo_Total_Ruta": "sum"
+        }).reset_index()
 
+        resumen["Utilidad Bruta"] = resumen["Ingreso Total"] - resumen["Costo_Total_Ruta"]
+        resumen["% Utilidad Bruta"] = (resumen["Utilidad Bruta"] / resumen["Ingreso Total"] * 100).round(2)
+        resumen["Costos Indirectos (35%)"] = (resumen["Ingreso Total"] * 0.35).round(2)
+        resumen["Utilidad Neta"] = resumen["Utilidad Bruta"] - resumen["Costos Indirectos (35%)"]
+        resumen["% Utilidad Neta"] = (resumen["Utilidad Neta"] / resumen["Ingreso Total"] * 100).round(2)
+
+        st.subheader("📋 Resumen de Viajes Concluidos")
+        st.dataframe(resumen, use_container_width=True)
+
+        csv = resumen.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            "📥 Descargar Resumen en CSV",
+            data=csv,
+            file_name="resumen_traficos_concluidos.csv",
+            mime="text/csv"
+        )
