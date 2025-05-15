@@ -22,7 +22,6 @@ def cargar_rutas():
         st.error("❌ No se encontró rutas_guardadas.csv")
         st.stop()
     df = pd.read_csv(RUTA_RUTAS)
-    df = df[df["Clasificacion Ruta"] == "RL"]
     df["Utilidad"] = df["Ingreso Total"] - df["Costo_Total_Ruta"]
     df["% Utilidad"] = (df["Utilidad"] / df["Ingreso Total"] * 100).round(2)
     df["Ruta"] = df["Origen"] + " → " + df["Destino"]
